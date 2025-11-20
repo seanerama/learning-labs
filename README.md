@@ -6,6 +6,7 @@ A collection of hands-on learning guides and tutorials covering various technolo
 
 | Lab | Description | Topics |
 |-----|-------------|--------|
+| [MCP (Model Context Protocol)](mcp/) | AI-powered network operations with local LLMs | MCP, Ollama, FastMCP, Network Tools, AI Automation |
 | [Kubernetes](kubernetes/) | Container orchestration and networking | Docker, K8s, multi-cluster, FastAPI |
 
 ## Getting Started
