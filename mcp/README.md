@@ -678,12 +678,15 @@ Create [tools/config.json](tools/config.json):
 
 **Important:** Replace `YOUR_USERNAME` with your actual WSL username:
 ```bash
-# Get your username
-whoami
-
 # Update the config file with your username
 sed -i "s/YOUR_USERNAME/$(whoami)/g" config.json
 ```
+
+**What this command does:**
+- `sed -i` - Edits the file in-place (directly modifies config.json)
+- `s/YOUR_USERNAME/$(whoami)/g` - Substitutes all occurrences of "YOUR_USERNAME" with your actual username
+- `$(whoami)` - Executes the `whoami` command and inserts the result (your username)
+- This automatically customizes the path for your system without manual editing
 
 ### Test Your MCP Server
 
