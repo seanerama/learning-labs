@@ -37,7 +37,7 @@ This lab takes a progressive approach:
 
 1. **Concepts & Setup** - Understand MCP and Ollama while setting up your environment
 2. **First Tools** - Build simple network diagnostic tools with FastMCP
-3. **Hands-on Testing** - Use your tools through Open WebUI
+3. **Hands-on Testing** - Use your tools through MCP Web UI
 4. **Real-world Scenarios** - Apply your knowledge (separate labs in [scenarios/](scenarios/))
 5. **Extension Challenges** - Advanced exercises (see [scenarios/](scenarios/))
 
@@ -101,7 +101,7 @@ sequenceDiagram
 ```
 
 **Components:**
-1. **MCP Host** - The application using AI (like Open WebUI in our lab)
+1. **MCP Host** - The application using AI (like MCP Web UI in our lab)
 2. **MCP Client** - Connects to and communicates with MCP servers
 3. **MCP Server** - Exposes tools and resources to the AI
 4. **Tools/Resources** - The actual functionality (your network tools)
@@ -268,9 +268,9 @@ uname -a
 
 ### Step 2: Install Docker (If Needed)
 
-**What:** Docker allows us to run containerized applications like Open WebUI.
+**What:** Docker allows us to run containerized applications like MCP Web UI.
 
-**Why:** Open WebUI provides a user-friendly web interface to interact with Ollama and test our MCP tools.
+**Why:** MCP Web UI provides a user-friendly web interface specifically designed for the Model Context Protocol, allowing you to interact with Ollama models while testing your MCP tools.
 
 **Quick Docker Install (if needed):**
 
@@ -388,74 +388,133 @@ python -c "import fastmcp; print('FastMCP installed successfully')"
 - Automatically generates tool schemas
 - Built-in error handling
 
-### Step 6: Run Open WebUI
+### Step 6: Set Up MCP Web UI
 
-**What:** Open WebUI is a web-based interface for interacting with LLMs, specifically designed for Ollama.
+**What:** MCP Web UI is a web-based interface specifically designed for the Model Context Protocol.
 
-**Why:** It provides a visual way to chat with your AI model and see MCP tools in action. Better than command-line for learning.
+**Why:** Unlike general LLM interfaces, MCP Web UI natively supports MCP servers, allowing seamless integration with your custom tools. It provides a visual way to interact with Ollama while automatically discovering and using your MCP tools.
+
+#### Create MCP Web UI Configuration
+
+**What:** Create a configuration file that tells MCP Web UI how to connect to both Ollama and your MCP server.
+
+**Why:** The config.yaml file defines which LLM provider to use (Ollama) and which MCP servers to load (your network tools).
 
 ```bash
-# Run Open WebUI container
+# Create config directory
+mkdir -p ~/.config/mcpwebui
+
+# Create configuration file
+cat > ~/.config/mcpwebui/config.yaml << 'EOF'
+port: 8080
+logLevel: info
+
+systemPrompt: |
+  You are a helpful AI assistant with access to network diagnostic tools.
+  When users ask about network connectivity, DNS, or port accessibility,
+  use the available tools to provide accurate, real-time information.
+
+llm:
+  provider: ollama
+  model: granite4:350m
+  temperature: 0.7
+  maxTokens: 2048
+
+mcpStdIOServers:
+  network-tools:
+    command: python3
+    args:
+      - /home/YOUR_USERNAME/mcp-lab/tools/network_tools.py
+    description: Network diagnostic tools (ping, DNS, port check)
+EOF
+
+# Update the config file with your username
+sed -i "s/YOUR_USERNAME/$(whoami)/g" ~/.config/mcpwebui/config.yaml
+```
+
+**What this configuration does:**
+- `port: 8080` - Web interface will be accessible on port 8080
+- `systemPrompt` - Instructions for the AI on how to use the tools
+- `llm.provider: ollama` - Use your local Ollama installation
+- `llm.model: granite4:350m` - Specifies which model to use
+- `mcpStdIOServers` - Defines your network tools MCP server
+  - `command` and `args` - How to start your MCP server
+  - Points to the network_tools.py script you created
+
+#### Run MCP Web UI Container
+
+**What:** Start the MCP Web UI Docker container with your configuration.
+
+**Why:** Docker provides an isolated, consistent environment. The container will connect to your Ollama instance and automatically load your MCP tools.
+
+```bash
+# Run MCP Web UI container
 docker run -d \
-  -p 3000:8080 \
+  -p 8080:8080 \
   --add-host=host.docker.internal:host-gateway \
-  -v open-webui:/app/backend/data \
-  -e OLLAMA_BASE_URL=http://host.docker.internal:11434 \
-  -e WEBUI_AUTH=False \
-  --name open-webui \
+  --network host \
+  -v ~/.config/mcpwebui/config.yaml:/app/config.yaml \
+  -v ~/mcp-lab:/home/$(whoami)/mcp-lab \
+  --name mcp-web-ui \
   --restart always \
-  ghcr.io/open-webui/open-webui:main
+  ghcr.io/megagrindstone/mcp-web-ui:latest
 ```
 
 **What's happening here:**
 - `-d` - Runs in background (detached)
-- `-p 3000:8080` - Maps port 8080 in container to port 3000 on your host
-- `--add-host=host.docker.internal:host-gateway` - Allows container to reach WSL host services
-- `-v open-webui:/app/backend/data` - Persists data between restarts
-- `-e OLLAMA_BASE_URL=...` - Tells Open WebUI where to find Ollama
-- `-e WEBUI_AUTH=False` - Disables authentication (no login required for local use)
-- `--restart always` - Automatically restart container if it stops
+- `-p 8080:8080` - Maps port 8080 in container to port 8080 on your host
+- `--add-host=host.docker.internal:host-gateway` - Allows container to reach Ollama on WSL host
+- `--network host` - Uses host network for easier access to Ollama
+- `-v ~/.config/mcpwebui/config.yaml:/app/config.yaml` - Mounts your config file
+- `-v ~/mcp-lab:/home/$(whoami)/mcp-lab` - Mounts your MCP tools directory so the container can access network_tools.py
+- `--name mcp-web-ui` - Names the container for easy reference
+- `--restart always` - Automatically restart if container stops
 
-**Access Open WebUI:**
+**Access MCP Web UI:**
 ```bash
 # Open in your Windows browser:
-# http://localhost:3000
+# http://localhost:8080
 ```
 
-**Important:** After starting the container, it may take 1-2 minutes for the web interface to become accessible. Be patient!
+**Important:** After starting the container, it may take 30-60 seconds for the web interface to become accessible. Be patient!
 
-**WSL Note:** The URL `http://localhost:3000` works from Windows because WSL2 automatically forwards ports. Your Windows browser can access WSL services seamlessly.
+**WSL Note:** The URL `http://localhost:8080` works from Windows because WSL2 automatically forwards ports. Your Windows browser can access WSL services seamlessly.
 
 **Ubuntu Server Note:** If you're on a remote Ubuntu server, you'll need to:
-- Access via `http://<server-ip>:3000`, or
-- Set up SSH port forwarding: `ssh -L 3000:localhost:3000 user@server`
+- Access via `http://<server-ip>:8080`, or
+- Set up SSH port forwarding: `ssh -L 8080:localhost:8080 user@server`
 
 **Verify Setup:**
-1. Wait 1-2 minutes after starting the container
-2. Open http://localhost:3000 in your browser
-3. If you see a blank page, do a hard refresh (Ctrl+Shift+R) or try an incognito/private window to avoid browser caching
-4. You should see the Open WebUI interface with your Ollama models automatically detected in the dropdown
-5. Select your Ollama model (granite4 or granite4:350m) from the model dropdown
-6. Try sending a test message: "Hello, introduce yourself"
+1. Wait 30-60 seconds after starting the container
+2. Open http://localhost:8080 in your browser
+3. You should see the MCP Web UI interface with a chat window
+4. Your Ollama model (granite4:350m) should be automatically configured
+5. Try sending a test message: "Hello, what tools do you have access to?"
+6. The AI should respond mentioning the ping, DNS lookup, and port check tools
 
 ### Step 7: Verify Full Setup
 
 **What:** Quick checklist to ensure everything is working.
 
-**Why:** Better to catch issues now before building tools.
+**Why:** Better to catch issues now before building tools. This verifies that all components (Ollama, MCP Web UI, Python environment) are properly configured and communicating.
 
 ```bash
 # 1. Check Ollama is running
 curl http://localhost:11434/api/version
-# Should return version info
+# Should return version info like: {"version":"0.x.x"}
 
-# 2. Check Docker is running
-docker ps | grep open-webui
-# Should show open-webui container
+# 2. Check MCP Web UI container is running
+docker ps | grep mcp-web-ui
+# Should show mcp-web-ui container with status "Up"
 
 # 3. Check Python environment
 source ~/mcp-lab/venv/bin/activate
 python -c "import fastmcp; print('Ready to build!')"
+# Should print: Ready to build!
+
+# 4. Verify MCP Web UI can access Ollama
+docker logs mcp-web-ui --tail 20
+# Should see startup logs without errors about Ollama connection
 ```
 
 **If you see any errors, check the [Troubleshooting Guide](TROUBLESHOOTING.md).**
@@ -656,43 +715,11 @@ if __name__ == "__main__":
    - Returns user-friendly error messages
    - Important for AI to understand what went wrong
 
-### Create MCP Configuration
-
-**What:** Configuration file that tells MCP clients how to connect to your server.
-
-**Why:** MCP clients (like Open WebUI) need to know where your server is and how to start it.
-
-Create [tools/config.json](tools/config.json):
-
-```json
-{
-  "mcpServers": {
-    "network-tools": {
-      "command": "python3",
-      "args": ["/home/YOUR_USERNAME/mcp-lab/tools/network_tools.py"],
-      "description": "Network diagnostic tools (ping, DNS, port check)"
-    }
-  }
-}
-```
-
-**Important:** Replace `YOUR_USERNAME` with your actual WSL username:
-```bash
-# Update the config file with your username
-sed -i "s/YOUR_USERNAME/$(whoami)/g" config.json
-```
-
-**What this command does:**
-- `sed -i` - Edits the file in-place (directly modifies config.json)
-- `s/YOUR_USERNAME/$(whoami)/g` - Substitutes all occurrences of "YOUR_USERNAME" with your actual username
-- `$(whoami)` - Executes the `whoami` command and inserts the result (your username)
-- This automatically customizes the path for your system without manual editing
-
 ### Test Your MCP Server
 
 **What:** Run the server standalone to verify it works.
 
-**Why:** Easier to debug issues before integrating with Open WebUI.
+**Why:** Easier to debug issues before integrating with MCP Web UI. Running standalone confirms the tools work correctly.
 
 ```bash
 # Make the script executable
@@ -728,25 +755,22 @@ INFO     Starting MCP server 'Network Tools' with transport 'stdio'
 
 ## Testing Your Tools
 
-### Configure Open WebUI to Use MCP Server
+### Access MCP Web UI
 
-**What:** Connect Open WebUI to your MCP server.
+**What:** Open the MCP Web UI interface in your browser.
 
-**Why:** This allows the AI to discover and use your network tools.
+**Why:** MCP Web UI is already configured with your tools from Step 6. Now you can interact with the AI and see your MCP tools in action.
 
-1. **Configure Open WebUI with your MCP server:**
-   ```bash
-   # Create the MCP config directory in the container
-   docker exec open-webui mkdir -p /app/backend/.mcp
+1. **Access MCP Web UI:**
+   - Open your browser to http://localhost:8080
+   - You should see a clean chat interface
+   - The granite4:350m model is already configured
+   - Your network tools are automatically loaded and ready to use
 
-   # Copy your config into the container
-   docker cp ~/mcp-lab/tools/config.json open-webui:/app/backend/.mcp/config.json
-
-   # Restart Open WebUI to load the config
-   docker restart open-webui
-   ```
-
-2. **Access Open WebUI:** Open http://localhost:3000
+2. **Verify Tools are Loaded:**
+   - Send this message: "What tools do you have access to?"
+   - The AI should respond mentioning: ping, DNS lookup (dns_lookup), and port check (check_port) tools
+   - If the AI doesn't mention the tools, check the container logs: `docker logs mcp-web-ui`
 
 ### Try Your Tools!
 
@@ -793,20 +817,22 @@ Behind the scenes:
 ```mermaid
 sequenceDiagram
     participant You
-    participant WebUI as Open WebUI
+    participant WebUI as MCP Web UI
     participant Ollama
     participant MCP as MCP Server
     participant Tools as Network Tools
 
     You->>WebUI: "Can you ping google.com?"
-    WebUI->>Ollama: Forward message
-    Ollama->>MCP: Discover tools
-    MCP-->>Ollama: [ping, dns_lookup, check_port]
+    WebUI->>MCP: Discover tools
+    MCP-->>WebUI: [ping, dns_lookup, check_port]
+    WebUI->>Ollama: Send message with available tools
     Ollama->>Ollama: Analyze request<br/>Decide to use ping tool
-    Ollama->>MCP: Call ping("google.com", 4)
-    MCP->>Tools: Execute ping
+    Ollama->>WebUI: Request tool execution: ping("google.com", 4)
+    WebUI->>MCP: Execute ping("google.com", 4)
+    MCP->>Tools: Run ping command
     Tools-->>MCP: Result: "✓ google.com is reachable..."
-    MCP-->>Ollama: Return result
+    MCP-->>WebUI: Return result
+    WebUI->>Ollama: Send tool result
     Ollama->>Ollama: Interpret result
     Ollama->>WebUI: "Google.com is reachable with..."
     WebUI->>You: Display response
@@ -840,7 +866,7 @@ Congratulations! You've successfully:
 - [MCP Documentation](https://modelcontextprotocol.io/)
 - [FastMCP GitHub](https://github.com/jlowin/fastmcp)
 - [Ollama Documentation](https://ollama.ai/docs)
-- [Open WebUI GitHub](https://github.com/open-webui/open-webui)
+- [MCP Web UI GitHub](https://github.com/MegaGrindStone/mcp-web-ui)
 
 ### Share Your Learning
 
