@@ -37,7 +37,7 @@ This lab takes a progressive approach:
 
 1. **Concepts & Setup** - Understand MCP and Ollama while setting up your environment
 2. **First Tools** - Build simple network diagnostic tools with FastMCP
-3. **Hands-on Testing** - Use your tools through OpenUI
+3. **Hands-on Testing** - Use your tools through Open WebUI
 4. **Real-world Scenarios** - Apply your knowledge (separate labs in [scenarios/](scenarios/))
 5. **Extension Challenges** - Advanced exercises (see [scenarios/](scenarios/))
 
@@ -101,7 +101,7 @@ sequenceDiagram
 ```
 
 **Components:**
-1. **MCP Host** - The application using AI (like OpenUI in our lab)
+1. **MCP Host** - The application using AI (like Open WebUI in our lab)
 2. **MCP Client** - Connects to and communicates with MCP servers
 3. **MCP Server** - Exposes tools and resources to the AI
 4. **Tools/Resources** - The actual functionality (your network tools)
@@ -268,9 +268,9 @@ uname -a
 
 ### Step 2: Install Docker (If Needed)
 
-**What:** Docker allows us to run containerized applications like OpenUI.
+**What:** Docker allows us to run containerized applications like Open WebUI.
 
-**Why:** OpenUI provides a user-friendly web interface to interact with Ollama and test our MCP tools.
+**Why:** Open WebUI provides a user-friendly web interface to interact with Ollama and test our MCP tools.
 
 **Quick Docker Install (if needed):**
 
@@ -388,35 +388,41 @@ python -c "import fastmcp; print('FastMCP installed successfully')"
 - Automatically generates tool schemas
 - Built-in error handling
 
-### Step 6: Run OpenUI
+### Step 6: Run Open WebUI
 
-**What:** OpenUI is a web-based interface for interacting with LLMs.
+**What:** Open WebUI is a web-based interface for interacting with LLMs, specifically designed for Ollama.
 
 **Why:** It provides a visual way to chat with your AI model and see MCP tools in action. Better than command-line for learning.
 
 ```bash
-# Run OpenUI container
+# Run Open WebUI container
 docker run -d \
-  --name openui \
   -p 3000:8080 \
-  -e OLLAMA_API_URL=http://host.docker.internal:11434 \
-  -v openui-data:/app/backend/data \
   --add-host=host.docker.internal:host-gateway \
-  ghcr.io/wandb/openui:latest
+  -v open-webui:/app/backend/data \
+  -e OLLAMA_BASE_URL=http://host.docker.internal:11434 \
+  -e WEBUI_AUTH=False \
+  --name open-webui \
+  --restart always \
+  ghcr.io/open-webui/open-webui:main
 ```
 
 **What's happening here:**
 - `-d` - Runs in background (detached)
 - `-p 3000:8080` - Maps port 8080 in container to port 3000 on your host
-- `-e OLLAMA_API_URL=...` - Tells OpenUI where to find Ollama
 - `--add-host=host.docker.internal:host-gateway` - Allows container to reach WSL host services
-- `-v openui-data:/app/backend/data` - Persists data between restarts
+- `-v open-webui:/app/backend/data` - Persists data between restarts
+- `-e OLLAMA_BASE_URL=...` - Tells Open WebUI where to find Ollama
+- `-e WEBUI_AUTH=False` - Disables authentication (no login required for local use)
+- `--restart always` - Automatically restart container if it stops
 
-**Access OpenUI:**
+**Access Open WebUI:**
 ```bash
 # Open in your Windows browser:
 # http://localhost:3000
 ```
+
+**Important:** After starting the container, it may take 1-2 minutes for the web interface to become accessible. Be patient!
 
 **WSL Note:** The URL `http://localhost:3000` works from Windows because WSL2 automatically forwards ports. Your Windows browser can access WSL services seamlessly.
 
@@ -425,10 +431,12 @@ docker run -d \
 - Set up SSH port forwarding: `ssh -L 3000:localhost:3000 user@server`
 
 **Verify Setup:**
-1. Open http://localhost:3000 in your browser
-2. You should see the OpenUI interface
-3. Select your Ollama model (granite4 or granite4:350m)
-4. Try sending a test message: "Hello, introduce yourself"
+1. Wait 1-2 minutes after starting the container
+2. Open http://localhost:3000 in your browser
+3. If you see a blank page, do a hard refresh (Ctrl+Shift+R) or try an incognito/private window to avoid browser caching
+4. You should see the Open WebUI interface with your Ollama models automatically detected in the dropdown
+5. Select your Ollama model (granite4 or granite4:350m) from the model dropdown
+6. Try sending a test message: "Hello, introduce yourself"
 
 ### Step 7: Verify Full Setup
 
@@ -442,8 +450,8 @@ curl http://localhost:11434/api/version
 # Should return version info
 
 # 2. Check Docker is running
-docker ps | grep openui
-# Should show openui container
+docker ps | grep open-webui
+# Should show open-webui container
 
 # 3. Check Python environment
 source ~/mcp-lab/venv/bin/activate
@@ -652,7 +660,7 @@ if __name__ == "__main__":
 
 **What:** Configuration file that tells MCP clients how to connect to your server.
 
-**Why:** MCP clients (like OpenUI) need to know where your server is and how to start it.
+**Why:** MCP clients (like Open WebUI) need to know where your server is and how to start it.
 
 Create [tools/config.json](tools/config.json):
 
@@ -681,7 +689,7 @@ sed -i "s/YOUR_USERNAME/$(whoami)/g" config.json
 
 **What:** Run the server standalone to verify it works.
 
-**Why:** Easier to debug issues before integrating with OpenUI.
+**Why:** Easier to debug issues before integrating with Open WebUI.
 
 ```bash
 # Make the script executable
@@ -704,25 +712,25 @@ Available tools:
 
 ## Testing Your Tools
 
-### Configure OpenUI to Use MCP Server
+### Configure Open WebUI to Use MCP Server
 
-**What:** Connect OpenUI to your MCP server.
+**What:** Connect Open WebUI to your MCP server.
 
 **Why:** This allows the AI to discover and use your network tools.
 
-1. **Find OpenUI's config directory:**
+1. **Find Open WebUI's config directory:**
    ```bash
    # Get container ID
-   docker ps | grep openui
+   docker ps | grep open-webui
 
    # Copy your config into the container
-   docker cp ~/mcp-lab/tools/config.json openui:/app/backend/.mcp/config.json
+   docker cp ~/mcp-lab/tools/config.json open-webui:/app/backend/.mcp/config.json
 
-   # Restart OpenUI to load the config
-   docker restart openui
+   # Restart Open WebUI to load the config
+   docker restart open-webui
    ```
 
-2. **Access OpenUI:** Open http://localhost:3000
+2. **Access Open WebUI:** Open http://localhost:3000
 
 ### Try Your Tools!
 
@@ -769,13 +777,13 @@ Behind the scenes:
 ```mermaid
 sequenceDiagram
     participant You
-    participant OpenUI
+    participant WebUI as Open WebUI
     participant Ollama
     participant MCP as MCP Server
     participant Tools as Network Tools
 
-    You->>OpenUI: "Can you ping google.com?"
-    OpenUI->>Ollama: Forward message
+    You->>WebUI: "Can you ping google.com?"
+    WebUI->>Ollama: Forward message
     Ollama->>MCP: Discover tools
     MCP-->>Ollama: [ping, dns_lookup, check_port]
     Ollama->>Ollama: Analyze request<br/>Decide to use ping tool
@@ -784,8 +792,8 @@ sequenceDiagram
     Tools-->>MCP: Result: "✓ google.com is reachable..."
     MCP-->>Ollama: Return result
     Ollama->>Ollama: Interpret result
-    Ollama->>OpenUI: "Google.com is reachable with..."
-    OpenUI->>You: Display response
+    Ollama->>WebUI: "Google.com is reachable with..."
+    WebUI->>You: Display response
 ```
 
 ---
@@ -816,7 +824,7 @@ Congratulations! You've successfully:
 - [MCP Documentation](https://modelcontextprotocol.io/)
 - [FastMCP GitHub](https://github.com/jlowin/fastmcp)
 - [Ollama Documentation](https://ollama.ai/docs)
-- [OpenUI GitHub](https://github.com/wandb/openui)
+- [Open WebUI GitHub](https://github.com/open-webui/open-webui)
 
 ### Share Your Learning
 
