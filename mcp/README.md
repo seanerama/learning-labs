@@ -734,10 +734,10 @@ INFO     Starting MCP server 'Network Tools' with transport 'stdio'
 
 **Why:** This allows the AI to discover and use your network tools.
 
-1. **Find Open WebUI's config directory:**
+1. **Configure Open WebUI with your MCP server:**
    ```bash
-   # Get container ID
-   docker ps | grep open-webui
+   # Create the MCP config directory in the container
+   docker exec open-webui mkdir -p /app/backend/.mcp
 
    # Copy your config into the container
    docker cp ~/mcp-lab/tools/config.json open-webui:/app/backend/.mcp/config.json
