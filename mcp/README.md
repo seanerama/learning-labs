@@ -704,12 +704,25 @@ python3 network_tools.py
 
 You should see output like:
 ```
-MCP Server running on stdio
-Available tools:
-  - ping: Check if a host is reachable using ICMP ping
-  - dns_lookup: Perform DNS lookup for a hostname
-  - check_port: Check if a TCP port is open on a host
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│                         ▄▀▀ ▄▀█ █▀▀ ▀█▀ █▀▄▀█ █▀▀ █▀█                        │
+│                         █▀  █▀█ ▄▄█  █  █ ▀ █ █▄▄ █▀▀                        │
+│                                                                              │
+│                                FastMCP 2.13.1                                │
+│                                                                              │
+│                    🖥  Server name: Network Tools                             │
+│                    📦 Transport:   STDIO                                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+INFO     Starting MCP server 'Network Tools' with transport 'stdio'
 ```
+
+**What this means:**
+- The server is running successfully and waiting for MCP client connections
+- It will appear to "hang" - this is normal! The server is listening for JSON-RPC messages via stdin
+- Your three tools (ping, dns_lookup, check_port) are registered and ready
+- Press Ctrl+C to stop the server when you're done testing
 
 ---
 
