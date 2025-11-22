@@ -371,11 +371,11 @@ curl http://localhost:11434/api/version
 
 # 2. Check Python environment
 source .venv/bin/activate
-python -c "import fastmcp; print('FastMCP ready!')"
-python -c "import streamlit; print('Streamlit ready!')"
+python3 -c "import fastmcp; print('FastMCP ready')"
+python3 -c "import streamlit; print('Streamlit ready')"
 
 # 3. Test the network tools server directly
-python network_tools.py
+python3 network_tools.py
 # Should show FastMCP banner - press Ctrl+C to stop
 ```
 
@@ -474,7 +474,7 @@ async def my_new_tool(required_param: str, optional_param: int = 10) -> str:
 
 ```bash
 # Make sure you're in the lab directory with venv activated
-cd /path/to/learning-labs/mcp
+cd learning-labs/mcp
 source .venv/bin/activate
 
 # Start the Streamlit app
