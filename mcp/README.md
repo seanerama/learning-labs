@@ -313,7 +313,30 @@ ollama run granite4:350m
 # Type a test message, then /bye to exit
 ```
 
-### Step 4: Clone and Set Up the Lab
+### Step 4: Install uv (Python Package Manager)
+
+**What:** Install uv, a fast Python package and project manager.
+
+**Why:** uv is significantly faster than pip (10-100x) and provides better dependency resolution. It's written in Rust and designed as a drop-in replacement for pip, venv, and pip-tools.
+
+**uv vs pip:**
+| Feature | pip | uv |
+|---------|-----|-----|
+| Speed | Baseline | 10-100x faster |
+| Dependency Resolution | Basic | Advanced (like cargo) |
+| Lock Files | Requires pip-tools | Built-in |
+| Virtual Environments | Separate tool (venv) | Integrated |
+| Caching | Basic | Aggressive, global cache |
+
+```bash
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Verify installation
+uv --version
+```
+
+### Step 5: Clone and Set Up the Lab
 
 **What:** Get the lab files and install dependencies.
 
@@ -323,14 +346,8 @@ ollama run granite4:350m
 # Navigate to the lab directory (or clone if needed)
 cd /path/to/learning-labs/mcp
 
-# Create a Python virtual environment
-python3 -m venv .venv
-
-# Activate the virtual environment
-source .venv/bin/activate
-
-# Install all dependencies
-pip install -r requirements.txt
+# Create virtual environment and install dependencies (one command!)
+uv venv && source .venv/bin/activate && uv pip install -r requirements.txt
 ```
 
 **What gets installed:**
@@ -340,7 +357,7 @@ pip install -r requirements.txt
 - `dnspython` - DNS resolution library for network tools
 - Other supporting libraries
 
-### Step 5: Verify Full Setup
+### Step 6: Verify Full Setup
 
 **What:** Quick checklist to ensure everything is working.
 
