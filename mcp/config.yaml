@@ -1,0 +1,24 @@
+# config.yaml
+ollama:
+  host: "http://localhost:11434"
+  models:
+    - granite4:350m
+
+mcp:
+  # List of available MCP servers - select one in the UI
+  servers:
+    - name: "Network Tools"
+      script: "network_tools.py"
+      description: "Network diagnostic tools: ping, DNS lookup, port check"
+    - name: "Demo Tools"
+      script: "example_FastMCP.py"
+      description: "Calculator, weather, and web search tools"
+
+  # Default server to use
+  default_server: "Network Tools"
+  timeout: 30
+
+chat:
+  default_model: "granite4:350m"
+  max_tokens: 2048
+  temperature: 0.7

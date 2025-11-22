@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "network-tools": {
-      "command": "python3",
-      "args": ["/home/YOUR_USERNAME/mcp-lab/tools/network_tools.py"],
-      "description": "Network diagnostic tools (ping, DNS, port check)"
-    }
-  }
-}

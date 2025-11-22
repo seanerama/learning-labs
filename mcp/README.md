@@ -25,11 +25,10 @@ By completing this lab, you will:
 
 ## Prerequisites
 
-- **Windows 11 with WSL2** installed and configured
+- **Linux environment** (WSL2, Ubuntu, or similar)
 - **Basic command line** experience
 - **Basic Python** knowledge (reading/understanding code)
 - **Network engineering** background (understanding ping, DNS, ports)
-- **Docker** (brief installation guide included if needed)
 
 ## Lab Overview
 
@@ -37,7 +36,7 @@ This lab takes a progressive approach:
 
 1. **Concepts & Setup** - Understand MCP and Ollama while setting up your environment
 2. **First Tools** - Build simple network diagnostic tools with FastMCP
-3. **Hands-on Testing** - Use your tools through MCP Web UI
+3. **Hands-on Testing** - Use your tools through the SimpleUI web interface
 4. **Real-world Scenarios** - Apply your knowledge (separate labs in [scenarios/](scenarios/))
 5. **Extension Challenges** - Advanced exercises (see [scenarios/](scenarios/))
 
@@ -81,27 +80,28 @@ graph LR
 ```mermaid
 sequenceDiagram
     participant User
-    participant AI as AI Model<br/>(Ollama)
-    participant MCP as MCP Client
-    participant Server as MCP Server<br/>(Your Tools)
-    participant Tool as Network Tool<br/>(ping, DNS, etc)
+    participant UI as SimpleUI
+    participant Ollama as Ollama LLM
+    participant MCP as MCP Server
+    participant Tool as Network Tool
 
-    User->>AI: "Check if google.com is reachable"
-    AI->>MCP: Discover available tools
-    MCP->>Server: List tools
-    Server->>MCP: [ping, dns_lookup, port_check]
-    MCP->>AI: Available tools
-    AI->>MCP: Call ping tool with "google.com"
-    MCP->>Server: Execute ping("google.com")
-    Server->>Tool: Run ping command
-    Tool->>Server: Result: 20ms latency
-    Server->>MCP: Return result
-    MCP->>AI: Tool response
-    AI->>User: "google.com is reachable with 20ms latency"
+    User->>UI: "Check if google.com is reachable"
+    UI->>MCP: Get available tools
+    MCP-->>UI: [ping, dns_lookup, check_port]
+    UI->>Ollama: Send message + available tools
+    Ollama->>Ollama: Analyze request
+    Ollama-->>UI: Request tool: ping("google.com")
+    UI->>MCP: Execute ping("google.com")
+    MCP->>Tool: Run ping command
+    Tool-->>MCP: Result: 20ms latency
+    MCP-->>UI: Return result
+    UI->>Ollama: Send tool result
+    Ollama-->>UI: "google.com is reachable with 20ms latency"
+    UI->>User: Display response
 ```
 
 **Components:**
-1. **MCP Host** - The application using AI (like MCP Web UI in our lab)
+1. **MCP Host** - The application using AI (SimpleUI in our lab)
 2. **MCP Client** - Connects to and communicates with MCP servers
 3. **MCP Server** - Exposes tools and resources to the AI
 4. **Tools/Resources** - The actual functionality (your network tools)
@@ -218,13 +218,13 @@ def check_website(url):
 ```python
 # You write this once
 @mcp.tool()
-def ping(hostname: str) -> str:
+async def ping(hostname: str) -> str:
     """Check if a host is reachable"""
     # Implementation
     return result
 
 @mcp.tool()
-def dns_lookup(hostname: str) -> str:
+async def dns_lookup(hostname: str) -> str:
     """Resolve DNS for a hostname"""
     # Implementation
     return result
@@ -252,53 +252,23 @@ def dns_lookup(hostname: str) -> str:
 
 ## Lab Setup
 
-### Step 1: Verify WSL Environment
+### Step 1: Verify Environment
 
-**What:** Ensure you're running in WSL2 (Windows Subsystem for Linux).
+**What:** Ensure you have a working Linux environment.
 
-**Why:** Ollama and Docker work best in a Linux environment. WSL2 provides full Linux kernel compatibility.
+**Why:** Ollama and the lab tools work best in Linux. WSL2 provides full Linux kernel compatibility on Windows.
 
 ```bash
-# Verify you're in WSL
+# Verify your environment
 uname -a
-# Should show: Linux ... Microsoft ... WSL2
+# Should show: Linux ...
+
+# Check Python version
+python3 --version
+# Should be 3.10 or higher
 ```
 
-**Ubuntu Server Note:** If you're running on a native Ubuntu server instead of WSL, the commands are identical. The main difference is Docker may have better performance on native Linux.
-
-### Step 2: Install Docker (If Needed)
-
-**What:** Docker allows us to run containerized applications like MCP Web UI.
-
-**Why:** MCP Web UI provides a user-friendly web interface specifically designed for the Model Context Protocol, allowing you to interact with Ollama models while testing your MCP tools.
-
-**Quick Docker Install (if needed):**
-
-```bash
-# Update package list
-sudo apt update
-
-# Install Docker
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
-
-# Add your user to docker group (avoid sudo)
-sudo usermod -aG docker $USER
-
-# Apply group changes (or logout/login)
-newgrp docker
-
-# Verify installation
-docker --version
-```
-
-**Ubuntu Server Note:** On Ubuntu Server, you may need to ensure the Docker daemon starts on boot:
-```bash
-sudo systemctl enable docker
-sudo systemctl start docker
-```
-
-### Step 3: Install Ollama
+### Step 2: Install Ollama
 
 **What:** Ollama is the runtime that executes LLMs locally.
 
@@ -318,13 +288,11 @@ ollama --version
 - Manages model downloads and execution
 - Provides OpenAI-compatible API
 
-### Step 4: Pull the Granite Model
+### Step 3: Pull the Granite Model
 
 **What:** Download the IBM Granite 4 language model.
 
 **Why:** Granite4 is a capable open-source model good for learning and testing. The smaller variant works on modest hardware.
-
-**Choose based on your system:**
 
 ```bash
 # For systems with 8GB+ RAM and decent CPU/GPU
@@ -334,255 +302,83 @@ ollama pull granite4
 ollama pull granite4:350m
 ```
 
-**What's happening:**
-- Ollama downloads model weights (can be several GB)
-- Caches model locally in `~/.ollama/models`
-- First run will take a few minutes
-- Subsequent uses are instant
-
 **Verify the model:**
 ```bash
 # List installed models
 ollama list
 
 # Test the model
-ollama run granite4
-# Or for smaller model:
 ollama run granite4:350m
 
 # Type a test message, then /bye to exit
 ```
 
-### Step 5: Install Python and FastMCP
+### Step 4: Clone and Set Up the Lab
 
-**What:** Set up Python environment and install the FastMCP framework.
+**What:** Get the lab files and install dependencies.
 
-**Why:** FastMCP is a Python framework that makes it easy to create MCP servers. It handles all the protocol details, so you focus on building tools.
-
-```bash
-# Install Python and pip (if not already installed)
-sudo apt update
-sudo apt install python3 python3-pip python3-venv -y
-
-# Create a project directory
-mkdir -p ~/mcp-lab
-cd ~/mcp-lab
-
-# Create a virtual environment
-python3 -m venv venv
-
-# Activate virtual environment
-source venv/bin/activate
-
-# Install FastMCP
-pip install fastmcp
-
-# Verify installation
-python -c "import fastmcp; print('FastMCP installed successfully')"
-```
-
-**What is FastMCP?**
-- Python framework for building MCP servers
-- Handles protocol serialization/deserialization
-- Provides decorators for easy tool definition
-- Automatically generates tool schemas
-- Built-in error handling
-
-### Step 6: Set Up MCP Web UI
-
-**What:** MCP Web UI is a web-based interface specifically designed for the Model Context Protocol.
-
-**Why:** Unlike general LLM interfaces, MCP Web UI natively supports MCP servers, allowing seamless integration with your custom tools. It provides a visual way to interact with Ollama while automatically discovering and using your MCP tools.
-
-#### Create MCP Web UI Configuration
-
-**What:** Create a configuration file that tells MCP Web UI how to connect to both Ollama and your MCP server.
-
-**Why:** The config.yaml file defines which LLM provider to use (Ollama) and which MCP servers to load (your network tools).
+**Why:** The lab includes the SimpleUI web interface, example MCP servers, and the network tools you'll be working with.
 
 ```bash
-# Create config directory
-mkdir -p ~/.config/mcpwebui
+# Navigate to the lab directory (or clone if needed)
+cd /path/to/learning-labs/mcp
 
-# Create configuration file
-cat > ~/.config/mcpwebui/config.yaml << 'EOF'
-port: 8080
-logLevel: info
+# Create a Python virtual environment
+python3 -m venv .venv
 
-systemPrompt: |
-  You are a helpful AI assistant with access to network diagnostic tools.
-  When users ask about network connectivity, DNS, or port accessibility,
-  use the available tools to provide accurate, real-time information.
+# Activate the virtual environment
+source .venv/bin/activate
 
-llm:
-  provider: ollama
-  model: granite4:350m
-  temperature: 0.7
-  maxTokens: 2048
-
-mcpStdIOServers:
-  network-tools:
-    command: python3
-    args:
-      - /home/YOUR_USERNAME/mcp-lab/tools/network_tools.py
-    description: Network diagnostic tools (ping, DNS, port check)
-EOF
-
-# Update the config file with your username
-sed -i "s/YOUR_USERNAME/$(whoami)/g" ~/.config/mcpwebui/config.yaml
+# Install all dependencies
+pip install -r requirements.txt
 ```
 
-**What this configuration does:**
-- `port: 8080` - Web interface will be accessible on port 8080
-- `systemPrompt` - Instructions for the AI on how to use the tools
-- `llm.provider: ollama` - Use your local Ollama installation
-- `llm.model: granite4:350m` - Specifies which model to use
-- `mcpStdIOServers` - Defines your network tools MCP server
-  - `command` and `args` - How to start your MCP server
-  - Points to the network_tools.py script you created
+**What gets installed:**
+- `streamlit` - Web UI framework
+- `fastmcp` - Framework for building MCP servers
+- `ollama` - Python client for Ollama API
+- `dnspython` - DNS resolution library for network tools
+- Other supporting libraries
 
-#### Run MCP Web UI Container
-
-**What:** Start the MCP Web UI Docker container with your configuration.
-
-**Why:** Docker provides an isolated, consistent environment. The container will connect to your Ollama instance and automatically load your MCP tools.
-
-```bash
-# Run MCP Web UI container
-docker run -d \
-  -p 8080:8080 \
-  --add-host=host.docker.internal:host-gateway \
-  --network host \
-  -v ~/.config/mcpwebui/config.yaml:/app/config.yaml \
-  -v ~/mcp-lab:/home/$(whoami)/mcp-lab \
-  --name mcp-web-ui \
-  --restart always \
-  ghcr.io/megagrindstone/mcp-web-ui:latest
-```
-
-**What's happening here:**
-- `-d` - Runs in background (detached)
-- `-p 8080:8080` - Maps port 8080 in container to port 8080 on your host
-- `--add-host=host.docker.internal:host-gateway` - Allows container to reach Ollama on WSL host
-- `--network host` - Uses host network for easier access to Ollama
-- `-v ~/.config/mcpwebui/config.yaml:/app/config.yaml` - Mounts your config file
-- `-v ~/mcp-lab:/home/$(whoami)/mcp-lab` - Mounts your MCP tools directory so the container can access network_tools.py
-- `--name mcp-web-ui` - Names the container for easy reference
-- `--restart always` - Automatically restart if container stops
-
-**Access MCP Web UI:**
-```bash
-# Open in your Windows browser:
-# http://localhost:8080
-```
-
-**Important:** After starting the container, it may take 30-60 seconds for the web interface to become accessible. Be patient!
-
-**WSL Note:** The URL `http://localhost:8080` works from Windows because WSL2 automatically forwards ports. Your Windows browser can access WSL services seamlessly.
-
-**Ubuntu Server Note:** If you're on a remote Ubuntu server, you'll need to:
-- Access via `http://<server-ip>:8080`, or
-- Set up SSH port forwarding: `ssh -L 8080:localhost:8080 user@server`
-
-**Verify Setup:**
-1. Wait 30-60 seconds after starting the container
-2. Open http://localhost:8080 in your browser
-3. You should see the MCP Web UI interface with a chat window
-4. Your Ollama model (granite4:350m) should be automatically configured
-5. Try sending a test message: "Hello, what tools do you have access to?"
-6. The AI should respond mentioning the ping, DNS lookup, and port check tools
-
-### Step 7: Verify Full Setup
+### Step 5: Verify Full Setup
 
 **What:** Quick checklist to ensure everything is working.
 
-**Why:** Better to catch issues now before building tools. This verifies that all components (Ollama, MCP Web UI, Python environment) are properly configured and communicating.
+**Why:** Better to catch issues now before diving into the lab.
 
 ```bash
 # 1. Check Ollama is running
 curl http://localhost:11434/api/version
 # Should return version info like: {"version":"0.x.x"}
 
-# 2. Check MCP Web UI container is running
-docker ps | grep mcp-web-ui
-# Should show mcp-web-ui container with status "Up"
+# 2. Check Python environment
+source .venv/bin/activate
+python -c "import fastmcp; print('FastMCP ready!')"
+python -c "import streamlit; print('Streamlit ready!')"
 
-# 3. Check Python environment
-source ~/mcp-lab/venv/bin/activate
-python -c "import fastmcp; print('Ready to build!')"
-# Should print: Ready to build!
-
-# 4. Verify MCP Web UI can access Ollama
-docker logs mcp-web-ui --tail 20
-# Should see startup logs without errors about Ollama connection
+# 3. Test the network tools server directly
+python network_tools.py
+# Should show FastMCP banner - press Ctrl+C to stop
 ```
-
-**If you see any errors, check the [Troubleshooting Guide](TROUBLESHOOTING.md).**
 
 ---
 
 ## Building Your First MCP Tools
 
-Now the fun part! We'll create network diagnostic tools that the AI can use.
+The lab includes a pre-built `network_tools.py` file with three network diagnostic tools. Let's understand how it works.
 
-### Project Structure
+### Understanding the Network Tools Server
 
-```bash
-cd ~/mcp-lab
-mkdir tools
-cd tools
-```
-
-Create this structure:
-```
-~/mcp-lab/tools/
-├── network_tools.py    # Our MCP server with tools
-├── config.json         # MCP server configuration
-└── requirements.txt    # Python dependencies
-```
-
-### Create Requirements File
-
-**What:** Define Python dependencies for our tools.
-
-**Why:** Our network tools need additional libraries for DNS lookup and network operations.
-
-```bash
-cat > requirements.txt << 'EOF'
-fastmcp
-dnspython
-EOF
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-### Build the Network Tools Server
-
-**What:** Create an MCP server with three network diagnostic tools.
-
-**Why:** These tools demonstrate practical MCP usage for network engineers - ping for connectivity, DNS lookup for name resolution, and port checking for service availability.
-
-Create [tools/network_tools.py](tools/network_tools.py):
+Open `network_tools.py` and examine its structure:
 
 ```python
-#!/usr/bin/env python3
-"""
-MCP Server with Network Diagnostic Tools
-Provides ping, DNS lookup, and port checking capabilities
-"""
-
-import subprocess
-import socket
-import dns.resolver
-from typing import Optional
 from fastmcp import FastMCP
 
-# Initialize MCP server
+# Initialize MCP server with a name
 mcp = FastMCP("Network Tools")
 
 @mcp.tool()
-def ping(hostname: str, count: int = 4) -> str:
+async def ping(hostname: str, count: int = 4) -> str:
     """
     Check if a host is reachable using ICMP ping.
 
@@ -593,106 +389,10 @@ def ping(hostname: str, count: int = 4) -> str:
     Returns:
         Ping results including latency and packet loss
     """
-    try:
-        # Run ping command
-        result = subprocess.run(
-            ["ping", "-c", str(count), hostname],
-            capture_output=True,
-            text=True,
-            timeout=10
-        )
-
-        if result.returncode == 0:
-            # Parse output for summary
-            lines = result.stdout.split('\n')
-            summary = [l for l in lines if 'packet loss' in l or 'rtt' in l or 'min/avg/max' in l]
-            return f"✓ {hostname} is reachable\n" + "\n".join(summary)
-        else:
-            return f"✗ {hostname} is not reachable\n{result.stdout}"
-
-    except subprocess.TimeoutExpired:
-        return f"✗ Ping to {hostname} timed out"
-    except Exception as e:
-        return f"✗ Error pinging {hostname}: {str(e)}"
-
-
-@mcp.tool()
-def dns_lookup(hostname: str, record_type: str = "A") -> str:
-    """
-    Perform DNS lookup for a hostname.
-
-    Args:
-        hostname: The hostname to resolve
-        record_type: DNS record type (A, AAAA, MX, NS, TXT, CNAME)
-
-    Returns:
-        DNS resolution results
-    """
-    try:
-        resolver = dns.resolver.Resolver()
-
-        # Query DNS
-        answers = resolver.resolve(hostname, record_type)
-
-        results = [f"DNS lookup for {hostname} ({record_type} records):"]
-        for rdata in answers:
-            results.append(f"  - {rdata.to_text()}")
-
-        return "\n".join(results)
-
-    except dns.resolver.NXDOMAIN:
-        return f"✗ {hostname} does not exist (NXDOMAIN)"
-    except dns.resolver.NoAnswer:
-        return f"✗ No {record_type} records found for {hostname}"
-    except dns.resolver.Timeout:
-        return f"✗ DNS query timed out for {hostname}"
-    except Exception as e:
-        return f"✗ Error resolving {hostname}: {str(e)}"
-
-
-@mcp.tool()
-def check_port(hostname: str, port: int, timeout: float = 3.0) -> str:
-    """
-    Check if a TCP port is open on a host.
-
-    Args:
-        hostname: The hostname or IP address to check
-        port: The TCP port number to check
-        timeout: Connection timeout in seconds (default: 3.0)
-
-    Returns:
-        Port status and connection result
-    """
-    try:
-        # Create socket
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(timeout)
-
-        # Try to connect
-        result = sock.connect_ex((hostname, port))
-        sock.close()
-
-        if result == 0:
-            # Try to identify common services
-            service = socket.getservbyport(port, 'tcp') if port < 1024 else "unknown"
-            return f"✓ Port {port} is OPEN on {hostname} (service: {service})"
-        else:
-            return f"✗ Port {port} is CLOSED or filtered on {hostname}"
-
-    except socket.gaierror:
-        return f"✗ Could not resolve hostname: {hostname}"
-    except socket.timeout:
-        return f"✗ Connection to {hostname}:{port} timed out"
-    except Exception as e:
-        return f"✗ Error checking port: {str(e)}"
-
-
-if __name__ == "__main__":
-    # Run the MCP server
-    mcp.run()
+    # Implementation here...
 ```
 
-**Understanding the Code:**
+**Key Concepts:**
 
 1. **FastMCP Initialization:**
    ```python
@@ -704,77 +404,85 @@ if __name__ == "__main__":
 2. **Tool Decorator:**
    ```python
    @mcp.tool()
-   def ping(hostname: str, count: int = 4) -> str:
+   async def ping(hostname: str, count: int = 4) -> str:
    ```
    - `@mcp.tool()` registers the function as an MCP tool
    - Type hints help the AI understand parameters
-   - Docstrings are critical - the AI reads them to understand what the tool does
+   - Async functions allow non-blocking I/O operations
 
-3. **Error Handling:**
-   - Each tool has comprehensive try/except blocks
-   - Returns user-friendly error messages
-   - Important for AI to understand what went wrong
+3. **Docstrings are Critical:**
+   - The AI reads docstrings to understand what the tool does
+   - Clear descriptions help the AI decide when to use each tool
+   - Document all parameters and return values
 
-### Test Your MCP Server
+### The Three Network Tools
 
-**What:** Run the server standalone to verify it works.
+| Tool | Purpose | Example Usage |
+|------|---------|---------------|
+| `ping` | Check host reachability | "Is google.com reachable?" |
+| `dns_lookup` | Resolve DNS records | "What's the IP for github.com?" |
+| `check_port` | Test TCP port status | "Is port 443 open on google.com?" |
 
-**Why:** Easier to debug issues before integrating with MCP Web UI. Running standalone confirms the tools work correctly.
+### Adding Your Own Tool
 
-```bash
-# Make the script executable
-chmod +x network_tools.py
+To add a new tool, follow this pattern:
 
-# Run the server (Ctrl+C to stop)
-python3 network_tools.py
+```python
+@mcp.tool()
+async def my_new_tool(required_param: str, optional_param: int = 10) -> str:
+    """
+    Brief description of what this tool does.
+
+    Args:
+        required_param: Description of this parameter
+        optional_param: Description with default value noted
+
+    Returns:
+        Description of what gets returned
+    """
+    try:
+        # Your implementation
+        result = f"Processed {required_param}"
+        return result
+    except Exception as e:
+        return f"Error: {str(e)}"
 ```
-
-You should see output like:
-```
-╭──────────────────────────────────────────────────────────────────────────────╮
-│                                                                              │
-│                         ▄▀▀ ▄▀█ █▀▀ ▀█▀ █▀▄▀█ █▀▀ █▀█                        │
-│                         █▀  █▀█ ▄▄█  █  █ ▀ █ █▄▄ █▀▀                        │
-│                                                                              │
-│                                FastMCP 2.13.1                                │
-│                                                                              │
-│                    🖥  Server name: Network Tools                             │
-│                    📦 Transport:   STDIO                                     │
-╰──────────────────────────────────────────────────────────────────────────────╯
-
-INFO     Starting MCP server 'Network Tools' with transport 'stdio'
-```
-
-**What this means:**
-- The server is running successfully and waiting for MCP client connections
-- It will appear to "hang" - this is normal! The server is listening for JSON-RPC messages via stdin
-- Your three tools (ping, dns_lookup, check_port) are registered and ready
-- Press Ctrl+C to stop the server when you're done testing
 
 ---
 
 ## Testing Your Tools
 
-### Access MCP Web UI
+### Start the Web Interface
 
-**What:** Open the MCP Web UI interface in your browser.
+```bash
+# Make sure you're in the lab directory with venv activated
+cd /path/to/learning-labs/mcp
+source .venv/bin/activate
 
-**Why:** MCP Web UI is already configured with your tools from Step 6. Now you can interact with the AI and see your MCP tools in action.
+# Start the Streamlit app
+streamlit run app.py
+```
 
-1. **Access MCP Web UI:**
-   - Open your browser to http://localhost:8080
-   - You should see a clean chat interface
-   - The granite4:350m model is already configured
-   - Your network tools are automatically loaded and ready to use
+Open your browser to: **http://localhost:8501**
 
-2. **Verify Tools are Loaded:**
-   - Send this message: "What tools do you have access to?"
-   - The AI should respond mentioning: ping, DNS lookup (dns_lookup), and port check (check_port) tools
-   - If the AI doesn't mention the tools, check the container logs: `docker logs mcp-web-ui`
+### Understanding the Interface
 
-### Try Your Tools!
+The SimpleUI interface has:
 
-**Example Prompts to Test:**
+1. **Sidebar (left)**
+   - Model selection (granite4:350m)
+   - MCP Server selection (Network Tools, Demo Tools)
+   - Temperature slider
+   - Connection status indicators
+
+2. **Chat Area (center)**
+   - Message input at bottom
+   - Conversation history above
+   - Tool calls shown inline
+
+### Try Your Network Tools
+
+**Example prompts to test:**
 
 1. **Simple Ping:**
    ```
@@ -791,52 +499,80 @@ INFO     Starting MCP server 'Network Tools' with transport 'stdio'
    Is port 443 open on google.com?
    ```
 
-4. **Combined:**
+4. **Combined Diagnostics:**
    ```
-   Check if microsoft.com is up by both pinging it and checking if port 80 is open
+   Check if microsoft.com is up by pinging it and checking if port 80 is open
    ```
 
 5. **Network Troubleshooting:**
    ```
-   I can't reach example.com. Can you help me diagnose the issue?
+   I can't reach example.com. Can you help diagnose the issue?
    Check DNS resolution, ping, and common ports (80, 443)
    ```
 
-**What to Observe:**
+### What to Observe
 
 - The AI understands your natural language request
 - The AI automatically chooses which tools to use
+- Tool calls are shown in the chat (you can see what's being executed)
 - The AI can chain multiple tools together
 - The AI interprets results and explains them
-- You didn't write any code to orchestrate this!
+- You didn't write any orchestration code!
 
-### Understanding What's Happening
+### Switching MCP Servers
 
-Behind the scenes:
+In the sidebar, you can switch between:
+- **Network Tools** - Your ping, DNS, and port check tools
+- **Demo Tools** - Calculator, weather (mock), and web search (mock)
+
+Try: "What's 25% of 840?" with Demo Tools selected.
+
+---
+
+## How It All Works Together
 
 ```mermaid
-sequenceDiagram
-    participant You
-    participant WebUI as MCP Web UI
-    participant Ollama
-    participant MCP as MCP Server
-    participant Tools as Network Tools
+flowchart TB
+    subgraph UI["SimpleUI (Streamlit)"]
+        A[User Input]
+        B[Chat Display]
+        C[Sidebar Config]
+    end
 
-    You->>WebUI: "Can you ping google.com?"
-    WebUI->>MCP: Discover tools
-    MCP-->>WebUI: [ping, dns_lookup, check_port]
-    WebUI->>Ollama: Send message with available tools
-    Ollama->>Ollama: Analyze request<br/>Decide to use ping tool
-    Ollama->>WebUI: Request tool execution: ping("google.com", 4)
-    WebUI->>MCP: Execute ping("google.com", 4)
-    MCP->>Tools: Run ping command
-    Tools-->>MCP: Result: "✓ google.com is reachable..."
-    MCP-->>WebUI: Return result
-    WebUI->>Ollama: Send tool result
-    Ollama->>Ollama: Interpret result
-    Ollama->>WebUI: "Google.com is reachable with..."
-    WebUI->>You: Display response
+    subgraph Core["Application Core"]
+        D[app.py]
+        E[ollama_client.py]
+        F[mcp_client.py]
+    end
+
+    subgraph Servers["MCP Servers"]
+        G[network_tools.py]
+        H[example_FastMCP.py]
+    end
+
+    subgraph External["External Services"]
+        I[Ollama LLM]
+    end
+
+    A --> D
+    D --> B
+    C --> D
+    D <--> E
+    D <--> F
+    E <--> I
+    F <--> G
+    F <--> H
 ```
+
+**Request Flow:**
+1. User types a message in the UI
+2. App.py gets available tools from the selected MCP server
+3. Message + tools are sent to Ollama
+4. Ollama decides if/which tools to call
+5. Tool calls are executed via the MCP server
+6. Results are sent back to Ollama
+7. Ollama generates final response
+8. Response is displayed to user
 
 ---
 
@@ -850,33 +586,93 @@ Congratulations! You've successfully:
 
 ### Continue Learning
 
-1. **Real-World Scenarios** - Apply your knowledge:
-   - [Network Troubleshooting Lab](scenarios/network-troubleshooting.md)
-   - [Log Analysis Lab](scenarios/log-analysis.md)
-   - [Automated Documentation Lab](scenarios/automated-docs.md)
+1. **Add More Tools** - Extend `network_tools.py` with:
+   - Traceroute
+   - Whois lookup
+   - HTTP status checker
+   - SSL certificate checker
 
-2. **Extension Challenges** - Build more advanced tools:
-   - [Challenge Exercises](scenarios/challenges.md)
+2. **Create a New MCP Server** - Build tools for:
+   - Log file analysis
+   - Configuration validation
+   - System health monitoring
 
-3. **Troubleshooting** - If you hit issues:
-   - [Troubleshooting Guide](TROUBLESHOOTING.md)
+3. **Explore Scenarios** - Check the [scenarios/](scenarios/) directory for:
+   - Network Troubleshooting Lab
+   - Log Analysis Lab
+   - Automated Documentation Lab
+
+### Project Structure Reference
+
+```
+learning-labs/mcp/
+├── app.py                 # Main Streamlit application
+├── ollama_client.py       # Ollama API wrapper with tool support
+├── mcp_client.py          # FastMCP client integration
+├── network_tools.py       # Network diagnostic MCP server
+├── example_FastMCP.py     # Demo tools MCP server
+├── config.yaml            # Configuration for models and servers
+├── requirements.txt       # Python dependencies
+├── README.md              # This file
+├── webui_framework_README.md  # SimpleUI framework documentation
+└── tools/                 # Additional tool modules
+```
 
 ### Additional Resources
 
 - [MCP Documentation](https://modelcontextprotocol.io/)
 - [FastMCP GitHub](https://github.com/jlowin/fastmcp)
 - [Ollama Documentation](https://ollama.ai/docs)
-- [MCP Web UI GitHub](https://github.com/MegaGrindStone/mcp-web-ui)
+- [Streamlit Documentation](https://docs.streamlit.io)
 
-### Share Your Learning
+---
 
-Built something cool? Found this helpful? Consider:
-- Sharing your custom tools
-- Contributing improvements to this lab
-- Creating your own scenario labs
+## Troubleshooting
+
+### Ollama not responding
+
+```bash
+# Check if Ollama is running
+curl http://localhost:11434/api/version
+
+# Start Ollama if needed
+ollama serve
+```
+
+### No models available
+
+```bash
+# List available models
+ollama list
+
+# Pull a model if needed
+ollama pull granite4:350m
+```
+
+### MCP Server issues
+
+```bash
+# Test the server directly
+python network_tools.py
+# Should show FastMCP banner
+
+# Check for import errors
+python -c "import dns.resolver; print('dnspython OK')"
+```
+
+### Tools not appearing in UI
+
+1. Ensure the correct MCP Server is selected in the sidebar
+2. Check the Status section shows "FastMCP: Available"
+3. Restart the Streamlit app after config changes
+
+### Port conflicts
+
+- Streamlit default: 8501 (change with `--server.port`)
+- Ollama default: 11434
 
 ---
 
 **Happy Learning!**
 
-For questions or issues, check the [Troubleshooting Guide](TROUBLESHOOTING.md) or open an issue.
+For questions or issues, check the troubleshooting section above or consult the additional resources.
