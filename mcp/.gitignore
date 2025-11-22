@@ -47,3 +47,6 @@ Thumbs.db
 
 # uv
 uv.lock
+
+# Cloned SimpleUI repository (students clone this separately)
+SimpleUI/

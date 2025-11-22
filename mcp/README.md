@@ -336,29 +336,81 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv --version
 ```
 
-### Step 5: Clone and Set Up the Lab
+### Step 5: Clone the Lab Repository
 
-**What:** Get the lab files and install dependencies.
+**What:** Get the learning lab files.
 
-**Why:** The lab includes the SimpleUI web interface, example MCP servers, and the network tools you'll be working with.
+**Why:** This repository contains the MCP server examples and network tools you'll be working with.
 
 ```bash
-# Clone the repository
+# Clone the learning labs repository
 git clone https://github.com/seanerama/learning-labs.git
 cd learning-labs/mcp
+```
+
+### Step 6: Clone and Set Up SimpleUI
+
+**What:** Clone the SimpleUI web interface that connects Ollama with MCP servers.
+
+**Why:** SimpleUI provides a web-based chat interface that lets you interact with your MCP tools through a local LLM. It handles the communication between Ollama and your MCP servers.
+
+```bash
+# Clone SimpleUI into the mcp directory
+git clone https://github.com/seanerama/SimpleUI.git
+
+# Enter the SimpleUI directory
+cd SimpleUI
 
 # Create virtual environment and install dependencies
 uv venv && source .venv/bin/activate && uv pip install -r requirements.txt
+
+# Return to the mcp directory
+cd ..
 ```
 
 **What gets installed:**
 - `streamlit` - Web UI framework
 - `fastmcp` - Framework for building MCP servers
 - `ollama` - Python client for Ollama API
-- `dnspython` - DNS resolution library for network tools
 - Other supporting libraries
 
-### Step 6: Verify Full Setup
+### Step 7: Install Lab Dependencies
+
+**What:** Install additional dependencies needed for the network tools.
+
+**Why:** The network tools MCP server requires `dnspython` for DNS lookups.
+
+```bash
+# Make sure you're in the mcp directory with venv activated
+source SimpleUI/.venv/bin/activate
+
+# Install lab-specific dependencies
+uv pip install dnspython>=2.4.0
+```
+
+### Step 8: Configure SimpleUI for Lab Tools
+
+**What:** Update SimpleUI's configuration to include the lab's MCP servers.
+
+**Why:** SimpleUI needs to know about your network tools server to make it available in the UI.
+
+Edit `SimpleUI/config.yaml` and add the lab's MCP servers:
+
+```yaml
+# Add these to the mcp.servers list in config.yaml
+mcp:
+  servers:
+    - name: "Network Tools"
+      script: "../network_tools.py"
+      description: "Network diagnostic tools: ping, DNS lookup, port check"
+    - name: "Demo Tools"
+      script: "../example_FastMCP.py"
+      description: "Calculator, weather, and web search tools"
+```
+
+Or replace the entire `mcp.servers` section with the above.
+
+### Step 9: Verify Full Setup
 
 **What:** Quick checklist to ensure everything is working.
 
@@ -370,7 +422,6 @@ curl http://localhost:11434/api/version
 # Should return version info like: {"version":"0.x.x"}
 
 # 2. Check Python environment
-source .venv/bin/activate
 python3 -c "import fastmcp; print('FastMCP ready')"
 python3 -c "import streamlit; print('Streamlit ready')"
 
@@ -473,12 +524,12 @@ async def my_new_tool(required_param: str, optional_param: int = 10) -> str:
 ### Start the Web Interface
 
 ```bash
-# Make sure you're in the lab directory with venv activated
+# Make sure you're in the mcp directory with venv activated
 cd learning-labs/mcp
-source .venv/bin/activate
+source SimpleUI/.venv/bin/activate
 
 # Start the Streamlit app
-streamlit run app.py
+streamlit run SimpleUI/app.py
 ```
 
 Open your browser to: **http://localhost:8501**
@@ -557,13 +608,13 @@ flowchart TB
         C[Sidebar Config]
     end
 
-    subgraph Core["Application Core"]
+    subgraph Core["SimpleUI Core"]
         D[app.py]
         E[ollama_client.py]
         F[mcp_client.py]
     end
 
-    subgraph Servers["MCP Servers"]
+    subgraph Servers["Lab MCP Servers"]
         G[network_tools.py]
         H[example_FastMCP.py]
     end
@@ -624,16 +675,15 @@ Congratulations! You've successfully:
 
 ```
 learning-labs/mcp/
-├── app.py                 # Main Streamlit application
-├── ollama_client.py       # Ollama API wrapper with tool support
-├── mcp_client.py          # FastMCP client integration
-├── network_tools.py       # Network diagnostic MCP server
-├── example_FastMCP.py     # Demo tools MCP server
-├── config.yaml            # Configuration for models and servers
-├── requirements.txt       # Python dependencies
-├── README.md              # This file
-├── webui_framework_README.md  # SimpleUI framework documentation
-└── tools/                 # Additional tool modules
+├── SimpleUI/              # Cloned SimpleUI repository
+│   ├── app.py             # Main Streamlit application
+│   ├── ollama_client.py   # Ollama API wrapper with tool support
+│   ├── mcp_client.py      # FastMCP client integration
+│   ├── config.yaml        # Configuration for models and servers
+│   └── requirements.txt   # Python dependencies
+├── network_tools.py       # Network diagnostic MCP server (lab file)
+├── example_FastMCP.py     # Demo tools MCP server (lab file)
+└── README.md              # This file
 ```
 
 ### Additional Resources
@@ -642,6 +692,7 @@ learning-labs/mcp/
 - [FastMCP GitHub](https://github.com/jlowin/fastmcp)
 - [Ollama Documentation](https://ollama.ai/docs)
 - [Streamlit Documentation](https://docs.streamlit.io)
+- [SimpleUI Repository](https://github.com/seanerama/SimpleUI)
 
 ---
 
@@ -671,18 +722,19 @@ ollama pull granite4:350m
 
 ```bash
 # Test the server directly
-python network_tools.py
+python3 network_tools.py
 # Should show FastMCP banner
 
 # Check for import errors
-python -c "import dns.resolver; print('dnspython OK')"
+python3 -c "import dns.resolver; print('dnspython OK')"
 ```
 
 ### Tools not appearing in UI
 
 1. Ensure the correct MCP Server is selected in the sidebar
-2. Check the Status section shows "FastMCP: Available"
-3. Restart the Streamlit app after config changes
+2. Check that `SimpleUI/config.yaml` has the correct paths to your MCP servers
+3. Verify the script paths are relative to the SimpleUI directory (use `../network_tools.py`)
+4. Restart the Streamlit app after config changes
 
 ### Port conflicts
 
