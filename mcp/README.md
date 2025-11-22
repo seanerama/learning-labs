@@ -343,10 +343,11 @@ uv --version
 **Why:** The lab includes the SimpleUI web interface, example MCP servers, and the network tools you'll be working with.
 
 ```bash
-# Navigate to the lab directory (or clone if needed)
-cd /path/to/learning-labs/mcp
+# Clone the repository
+git clone https://github.com/seanerama/learning-labs.git
+cd learning-labs/mcp
 
-# Create virtual environment and install dependencies (one command!)
+# Create virtual environment and install dependencies
 uv venv && source .venv/bin/activate && uv pip install -r requirements.txt
 ```
 
