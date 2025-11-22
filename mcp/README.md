@@ -551,29 +551,74 @@ The SimpleUI interface has:
 
 ### Try Your Network Tools
 
-**Example prompts to test:**
+Let's test the tools and observe what happens behind the scenes.
 
-1. **Simple Ping:**
-   ```
-   Can you ping google.com and tell me if it's reachable?
-   ```
+**Step 1:** In the SimpleUI chat, type:
+```
+What is the latency to google.com?
+```
 
-2. **DNS Lookup:**
+**Step 2:** After you see the response, switch back to the terminal where Streamlit is running. You'll see detailed logs showing exactly what happened:
+
+```
+INFO     Starting MCP server 'Network Tools' with transport 'stdio'
+INFO     Processing request of type ListToolsRequest
+INFO     Found tool: ping
+INFO     Found tool: dns_lookup
+INFO     Found tool: check_port
+INFO     Loaded 3 tools from FastMCP server: ../network_tools.py
+INFO     Sending chat request to model 'granite4:350m'
+INFO     Including 3 tools in request
+INFO     HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+INFO     Received response from Ollama
+INFO     Extracted 2 tool calls
+INFO     Processing 2 tool calls via FastMCP
+INFO     Calling MCP tool: ping with args: {'count': 4, 'hostname': 'google.com'}
+INFO     Pinging google.com with 4 packets
+INFO     Ping successful: google.com
+INFO     Tool 'ping' result: ✓ google.com is reachable...
+INFO     Calling MCP tool: check_port with args: {'hostname': 'google.com', 'port': 80}
+INFO     Checking port 80 on google.com
+INFO     ✓ Port 80 is OPEN on google.com (service: http)
+INFO     Sending chat request to model 'granite4:350m'
+INFO     Received response from Ollama
+```
+
+### Understanding the Log Output
+
+The logs reveal the complete MCP workflow:
+
+| Log Message | What's Happening |
+|-------------|------------------|
+| `Starting MCP server` | SimpleUI launches your network_tools.py as an MCP server |
+| `Processing request of type ListToolsRequest` | SimpleUI asks "what tools do you have?" |
+| `Found tool: ping, dns_lookup, check_port` | MCP server reports its available tools |
+| `Sending chat request to model` | Your question + tool definitions sent to Ollama |
+| `Extracted 2 tool calls` | Ollama decided to call ping AND check_port |
+| `Calling MCP tool: ping` | SimpleUI executes the ping tool via MCP |
+| `Tool 'ping' result: ✓ google.com is reachable` | Tool returns results |
+| `Sending chat request to model` (second time) | Results sent back to Ollama for interpretation |
+
+**Key Insight:** Notice how the AI decided on its own to call both `ping` and `check_port` - you didn't have to specify which tools to use!
+
+### More Example Prompts
+
+1. **DNS Lookup:**
    ```
    What are the DNS A records for github.com?
    ```
 
-3. **Port Check:**
+2. **Port Check:**
    ```
    Is port 443 open on google.com?
    ```
 
-4. **Combined Diagnostics:**
+3. **Combined Diagnostics:**
    ```
    Check if microsoft.com is up by pinging it and checking if port 80 is open
    ```
 
-5. **Network Troubleshooting:**
+4. **Network Troubleshooting:**
    ```
    I can't reach example.com. Can you help diagnose the issue?
    Check DNS resolution, ping, and common ports (80, 443)
