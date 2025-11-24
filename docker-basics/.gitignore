@@ -1,0 +1,39 @@
+# Docker-specific
+*.log
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+*~
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python (for Streamlit apps)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+env/
+ENV/
+.Python
+
+# Node (if any examples use it)
+node_modules/
+npm-debug.log*
+
+# Temporary files
+*.tmp
+temp/
+tmp/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
