@@ -16,8 +16,8 @@ commands = [
 ]
 
 # File paths
-ip_file = "ips.txt"  # Text file containing a list of IPs, one per line
-output_file = "command_results.csv"  # CSV file to save the command results
+ip_file = "../examples/ips.txt"  # Text file containing a list of IPs, one per line
+output_file = "../outputs/command_results.csv"  # CSV file to save the command results
 
 #Open the txt file
 with open(ip_file, "r") as file:

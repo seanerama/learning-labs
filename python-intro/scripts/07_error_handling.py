@@ -10,7 +10,7 @@ username = os.getenv("USERNAME9")
 password = os.getenv("PASSWORD9")    
 
 # Open the input CSV file that contains the IP addresses and commands
-with open('input_3_devices.csv', 'r', encoding='utf-8-sig') as input_file:
+with open('../examples/input_3_devices.csv', 'r', encoding='utf-8-sig') as input_file:
     reader = csv.reader(input_file)
 
     # Extract the first row as the header (contains IP and command columns)
@@ -20,7 +20,7 @@ with open('input_3_devices.csv', 'r', encoding='utf-8-sig') as input_file:
     commands = header[1:]  # Exclude the 'IP' column
 
     # Open the results CSV file for writing (output file)
-    with open('results_part6.csv', 'w', newline='') as csvfile:
+    with open('../outputs/results_part7.csv', 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
 
         # Write the header back to the results file (same as the input header)

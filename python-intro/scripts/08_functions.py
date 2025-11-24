@@ -2,8 +2,6 @@ import csv
 from netmiko import ConnectHandler
 from dotenv import load_dotenv
 import os
-#import the concurrent.futures toolbox
-import concurrent.futures
 
 load_dotenv()
 
@@ -61,43 +59,23 @@ def connect_and_run_commands(ip, commands):
         # Return the error message in place of results for this IP
         return [ip] + [f"Error: {str(e)}"] * len(commands)
 
-# Function to handle concurrent execution of device connections
-def run_concurrent_tasks(devices, commands, max_workers=20):
-    # This list will store the results for all devices
-    results = []
-
-    # Use ThreadPoolExecutor to run tasks concurrently
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # Create a dictionary to store future tasks
-        future_to_ip = {
-            executor.submit(connect_and_run_commands, ip, commands): ip
-            for ip in devices
-        }
-        
-        # As each task completes, collect the result
-        for future in concurrent.futures.as_completed(future_to_ip):
-            ip = future_to_ip[future]
-            try:
-                result_row = future.result()
-                results.append(result_row)
-            except Exception as e:
-                print(f"Error processing {ip}: {e}")
-    
-    return results
 # Main function to tie everything together
-def main(input_csv, output_csv, max_workers=40):
-
+def main(input_csv, output_csv):
+    
     # Step 1: Read the input CSV to get IPs and commands
     devices, commands, header = read_input_csv(input_csv)
     
-    # Step 2: Run the tasks concurrently across devices
-    results = run_concurrent_tasks(devices, commands, max_workers)
+    # Step 2: Collect results for all devices
+    results = []
+    for ip in devices:
+        result_row = connect_and_run_commands(ip, commands)
+        results.append(result_row)
     
-    # Step 3: Write the results to an output CSV
+    # Step 4: Write the results to an output CSV
     write_output_csv(output_csv, header, results)
 
 # Run the main function if this script is executed directly
 if __name__ == "__main__":
-    input_csv = 'input_150_devices.csv'  # Input file containing IPs and commands
-    output_csv = 'results_150.csv'  # Output file for results
-    main(input_csv, output_csv, max_workers=40)  # You can adjust max_workers for concurrency
+    input_csv = '../examples/input_3_devices.csv'  # Input file containing IPs and commands
+    output_csv = '../outputs/results_part8.csv'  # Output file for results
+    main(input_csv, output_csv)
