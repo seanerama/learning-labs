@@ -1,0 +1,12 @@
+---
+# Playbook using the vlan-provisioning role
+
+- name: Provision VLANs Using Role
+  hosts: switches
+  gather_facts: no
+  connection: network_cli
+
+  roles:
+    - role: vlan-provisioning
+      vars:
+        auto_save: true

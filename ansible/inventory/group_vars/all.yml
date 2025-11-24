@@ -1,0 +1,33 @@
+---
+# Global variables for all devices
+
+# DNS Servers
+dns_servers:
+  - 8.8.8.8
+  - 8.8.4.4
+
+# NTP Servers
+ntp_servers:
+  - 0.pool.ntp.org
+  - 1.pool.ntp.org
+
+# Domain Configuration
+domain_name: lab.local
+
+# Logging
+syslog_server: 192.168.100.10
+
+# SNMP Configuration
+snmp_community: public
+snmp_location: "Network Lab"
+snmp_contact: "admin@lab.local"
+
+# Timezone
+timezone: UTC
+
+# Banner
+login_banner: |
+  ******************************************
+  *  Authorized Access Only               *
+  *  All Activity is Monitored            *
+  ******************************************

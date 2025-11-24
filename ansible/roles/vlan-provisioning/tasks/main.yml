@@ -1,0 +1,91 @@
+---
+# VLAN Provisioning Role - Main Tasks
+
+- name: Validate VLAN configuration
+  assert:
+    that:
+      - vlans is defined
+      - vlans | length > 0
+    fail_msg: "VLAN configuration is required"
+    success_msg: "VLAN configuration validated"
+
+- name: Create VLANs
+  cisco.ios.ios_vlans:
+    config:
+      - vlan_id: "{{ item.id }}"
+        name: "{{ item.name }}"
+        state: active
+    state: merged
+  loop: "{{ vlans }}"
+  register: vlan_creation
+
+- name: Configure trunk interfaces
+  cisco.ios.ios_l2_interfaces:
+    config:
+      - name: "{{ item }}"
+        mode: trunk
+        trunk:
+          allowed_vlans: "{{ allowed_vlans | default(vlans | map(attribute='id') | join(',')) }}"
+          native_vlan: "{{ native_vlan | default(1) }}"
+    state: merged
+  loop: "{{ trunk_interfaces }}"
+  when: trunk_interfaces is defined and trunk_interfaces | length > 0
+  register: trunk_config
+
+- name: Configure access interfaces
+  cisco.ios.ios_l2_interfaces:
+    config:
+      - name: "{{ item.name }}"
+        mode: access
+        access:
+          vlan: "{{ item.vlan }}"
+    state: merged
+  loop: "{{ access_interfaces }}"
+  when: access_interfaces is defined and access_interfaces | length > 0
+  register: access_config
+
+- name: Set interface descriptions
+  cisco.ios.ios_interfaces:
+    config:
+      - name: "{{ item.name }}"
+        description: "{{ item.description }}"
+        enabled: true
+    state: merged
+  loop: "{{ access_interfaces }}"
+  when: access_interfaces is defined and item.description is defined
+
+- name: Configure spanning-tree mode
+  cisco.ios.ios_config:
+    lines:
+      - spanning-tree mode {{ stp_mode | default('rapid-pvst') }}
+  when: stp_mode is defined
+
+- name: Configure spanning-tree priority per VLAN
+  cisco.ios.ios_config:
+    lines:
+      - spanning-tree vlan {{ item.id }} priority {{ item.priority | default(stp_priority) }}
+  loop: "{{ vlans }}"
+  when: stp_priority is defined or item.priority is defined
+
+- name: Verify VLAN configuration
+  cisco.ios.ios_command:
+    commands:
+      - show vlan brief
+  register: vlan_verify
+
+- name: Verify trunk configuration
+  cisco.ios.ios_command:
+    commands:
+      - show interfaces trunk
+  register: trunk_verify
+  when: trunk_interfaces is defined and trunk_interfaces | length > 0
+
+- name: Display VLAN verification
+  debug:
+    msg: "{{ vlan_verify.stdout_lines }}"
+  when: vlan_verify is defined
+
+- name: Save configuration
+  cisco.ios.ios_config:
+    save_when: modified
+  when: auto_save | default(true)

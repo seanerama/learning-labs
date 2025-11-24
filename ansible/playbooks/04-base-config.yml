@@ -1,0 +1,81 @@
+---
+# Playbook 4: Apply Base Configuration
+# Purpose: Configure common settings across all network devices
+
+- name: Apply Base Configuration to Network Devices
+  hosts: network
+  gather_facts: no
+  connection: network_cli
+
+  tasks:
+    - name: Set hostname
+      cisco.ios.ios_config:
+        lines:
+          - hostname {{ inventory_hostname }}
+      when: inventory_hostname is defined
+
+    - name: Configure domain name
+      cisco.ios.ios_config:
+        lines:
+          - ip domain-name {{ domain_name }}
+      when: domain_name is defined
+
+    - name: Configure DNS servers
+      cisco.ios.ios_config:
+        lines:
+          - ip name-server {{ item }}
+      loop: "{{ dns_servers }}"
+      when: dns_servers is defined
+
+    - name: Configure NTP servers
+      cisco.ios.ios_config:
+        lines:
+          - ntp server {{ item }}
+      loop: "{{ ntp_servers }}"
+      when: ntp_servers is defined
+
+    - name: Configure logging
+      cisco.ios.ios_config:
+        lines:
+          - logging buffered 51200
+          - logging console informational
+          - logging monitor informational
+          - logging host {{ syslog_server }}
+      when: syslog_server is defined
+
+    - name: Configure login banner
+      cisco.ios.ios_banner:
+        banner: login
+        text: "{{ login_banner }}"
+        state: present
+      when: login_banner is defined
+
+    - name: Enable SSH
+      cisco.ios.ios_config:
+        lines:
+          - ip ssh version 2
+          - ip ssh time-out 60
+          - ip ssh authentication-retries 3
+
+    - name: Configure line vty
+      cisco.ios.ios_config:
+        lines:
+          - transport input ssh
+          - exec-timeout 15 0
+        parents: line vty 0 4
+
+    - name: Save configuration
+      cisco.ios.ios_config:
+        save_when: modified
+
+    - name: Verify configuration
+      cisco.ios.ios_command:
+        commands:
+          - show run | include hostname
+          - show run | include domain-name
+          - show run | include ntp
+      register: config_verify
+
+    - name: Display verification results
+      debug:
+        var: config_verify.stdout_lines

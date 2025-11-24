@@ -1,0 +1,14 @@
+---
+# Config Backup Role - Default Variables
+
+# Root directory for all backups
+backup_root_dir: "./backups"
+
+# Backup retention settings
+backup_retention_days: 30
+
+# Include startup config
+include_startup_config: true
+
+# Compress backups
+compress_backups: false

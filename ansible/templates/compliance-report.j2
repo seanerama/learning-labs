@@ -1,0 +1,78 @@
+================================================================
+NETWORK DEVICE COMPLIANCE REPORT
+================================================================
+
+Device Information:
+------------------
+Hostname: {{ inventory_hostname }}
+IP Address: {{ ansible_host }}
+Model: {{ ansible_net_model | default('Unknown') }}
+Version: {{ ansible_net_version | default('Unknown') }}
+Serial: {{ ansible_net_serialnum | default('Unknown') }}
+
+Compliance Check Date: {{ compliance_timestamp }}
+
+================================================================
+COMPLIANCE RESULTS
+================================================================
+
+Overall Compliance Score: {{ compliance_score }}%
+Compliance Threshold: {{ compliance_threshold }}%
+Overall Status: {{ 'PASS' if compliance_score | float >= compliance_threshold else 'FAIL' }}
+
+Detailed Check Results:
+----------------------
+
+{% for check in compliance_checks %}
+{{ "%-20s" | format(check.name + ":") }} {{ check.status }}
+{% endfor %}
+
+================================================================
+DETAILED FINDINGS
+================================================================
+
+Hostname Configuration:
+{{ hostname_check.stdout[0] | default('Not configured') }}
+
+DNS Configuration:
+{{ dns_check.stdout[0] | default('Not configured') }}
+
+NTP Status:
+{{ ntp_check.stdout[0] | default('Not configured') }}
+
+SSH Configuration:
+{{ ssh_check.stdout[0] | default('Not configured') }}
+
+Banner Configuration:
+{% if banner_check.stdout[0] | length > 0 %}
+Configured
+{% else %}
+Not configured
+{% endif %}
+
+================================================================
+RECOMMENDATIONS
+================================================================
+
+{% if not hostname_compliant %}
+- Configure hostname to match inventory name
+{% endif %}
+{% if not dns_compliant %}
+- Configure DNS servers: {{ dns_servers | join(', ') }}
+{% endif %}
+{% if not ntp_compliant %}
+- Configure and verify NTP synchronization
+{% endif %}
+{% if not logging_compliant %}
+- Configure syslog server: {{ syslog_server }}
+{% endif %}
+{% if not ssh_compliant %}
+- Enable SSH version 2
+{% endif %}
+{% if not banner_compliant %}
+- Configure login banner
+{% endif %}
+
+================================================================
+END OF REPORT
+================================================================

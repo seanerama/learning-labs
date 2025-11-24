@@ -1,0 +1,20 @@
+---
+# Compliance Check Role - Metadata
+
+galaxy_info:
+  author: Network Admin
+  description: Role for checking network device compliance
+  company: Lab Environment
+  license: MIT
+  min_ansible_version: 2.14
+  platforms:
+    - name: Cisco IOS
+      versions:
+        - all
+  galaxy_tags:
+    - networking
+    - cisco
+    - compliance
+    - audit
+
+dependencies: []

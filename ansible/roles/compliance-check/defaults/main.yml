@@ -1,0 +1,25 @@
+---
+# Compliance Check Role - Default Variables
+
+# Compliance directory
+compliance_dir: "./compliance"
+
+# Compliance threshold (percentage)
+compliance_threshold: 80
+
+# Enforce compliance (fail playbook if below threshold)
+enforce_compliance: false
+
+# Require AAA configuration
+require_aaa: false
+
+# Compliance checks to perform
+compliance_checks_enabled:
+  hostname: true
+  dns: true
+  ntp: true
+  logging: true
+  ssh: true
+  banner: true
+  snmp: false
+  aaa: false

@@ -1,0 +1,13 @@
+---
+# Playbook using the config-backup role
+
+- name: Backup Network Configurations Using Role
+  hosts: network
+  gather_facts: no
+  connection: network_cli
+
+  roles:
+    - role: config-backup
+      vars:
+        backup_root_dir: "./backups"
+        include_startup_config: true

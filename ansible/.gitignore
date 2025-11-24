@@ -1,0 +1,48 @@
+# Ansible specific
+*.retry
+.ansible/
+
+# Logs
+logs/*.log
+*.log
+
+# Backups
+backups/
+*.cfg
+*.backup
+
+# Facts and Output
+facts/*.json
+audit/*.txt
+compliance/*.txt
+
+# Vault password file
+.vault_pass
+vault_pass.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Collections
+collections/
+
+# Test Environment
+test-environment/.env

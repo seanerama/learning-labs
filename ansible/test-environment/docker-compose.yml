@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  # Cisco IOS-like Network Device Simulator using vrnetlab
+  # Note: This requires pre-built vrnetlab images
+
+  router1:
+    image: vrnetlab/vr-csr:16.09.03
+    container_name: lab-router1
+    environment:
+      - CONNECTION_MODE=tc
+    ports:
+      - "2221:22"    # SSH
+      - "8001:80"    # HTTP
+      - "44301:443"  # HTTPS
+    networks:
+      lab_network:
+        ipv4_address: 192.168.1.1
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    restart: unless-stopped
+
+  router2:
+    image: vrnetlab/vr-csr:16.09.03
+    container_name: lab-router2
+    environment:
+      - CONNECTION_MODE=tc
+    ports:
+      - "2222:22"
+      - "8002:80"
+      - "44302:443"
+    networks:
+      lab_network:
+        ipv4_address: 192.168.1.2
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    restart: unless-stopped
+
+  # GNS3 Server (Alternative approach)
+  gns3:
+    image: gns3/gns3server:latest
+    container_name: lab-gns3
+    ports:
+      - "3080:3080"
+      - "8000-8100:8000-8100"
+    volumes:
+      - gns3_data:/opt/gns3/projects
+      - /var/run/docker.sock:/var/run/docker.sock
+    privileged: true
+    restart: unless-stopped
+
+  # Ansible Control Node
+  ansible-control:
+    image: cytopia/ansible:latest
+    container_name: lab-ansible-control
+    working_dir: /ansible
+    volumes:
+      - ..:/ansible
+      - ansible_ssh:/root/.ssh
+    networks:
+      lab_network:
+        ipv4_address: 192.168.1.10
+    command: tail -f /dev/null
+    restart: unless-stopped
+
+  # Network Automation Development Container
+  netauto-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.netauto
+    container_name: lab-netauto-dev
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace
+      - netauto_home:/root
+    networks:
+      lab_network:
+        ipv4_address: 192.168.1.20
+    ports:
+      - "8888:8888"  # Jupyter
+      - "5000:5000"  # Flask API
+    command: tail -f /dev/null
+    restart: unless-stopped
+
+networks:
+  lab_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.1.0/24
+
+volumes:
+  gns3_data:
+  ansible_ssh:
+  netauto_home:

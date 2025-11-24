@@ -1,0 +1,83 @@
+---
+# Playbook 5: Configuration Compliance Check
+# Purpose: Verify devices meet compliance requirements
+
+- name: Network Configuration Compliance Check
+  hosts: network
+  gather_facts: no
+  connection: network_cli
+
+  vars:
+    compliance_dir: "./compliance"
+    timestamp: "{{ lookup('pipe', 'date +%Y%m%d-%H%M%S') }}"
+
+  tasks:
+    - name: Create compliance directory
+      file:
+        path: "{{ compliance_dir }}"
+        state: directory
+      delegate_to: localhost
+      run_once: true
+
+    - name: Check DNS configuration
+      cisco.ios.ios_command:
+        commands:
+          - show run | include name-server
+      register: dns_check
+
+    - name: Check NTP configuration
+      cisco.ios.ios_command:
+        commands:
+          - show ntp associations
+      register: ntp_check
+
+    - name: Check logging configuration
+      cisco.ios.ios_command:
+        commands:
+          - show logging
+      register: logging_check
+
+    - name: Check SSH configuration
+      cisco.ios.ios_command:
+        commands:
+          - show ip ssh
+      register: ssh_check
+
+    - name: Check banner configuration
+      cisco.ios.ios_command:
+        commands:
+          - show run | section banner
+      register: banner_check
+
+    - name: Evaluate DNS compliance
+      set_fact:
+        dns_compliant: "{{ dns_servers | map('string') | list | select('in', dns_check.stdout[0]) | list | length == dns_servers | length }}"
+
+    - name: Evaluate NTP compliance
+      set_fact:
+        ntp_compliant: "{{ 'reach' in ntp_check.stdout[0] }}"
+
+    - name: Evaluate SSH compliance
+      set_fact:
+        ssh_compliant: "{{ 'SSH Enabled - version 2.0' in ssh_check.stdout[0] }}"
+
+    - name: Generate compliance report
+      template:
+        src: ../templates/compliance-report.j2
+        dest: "{{ compliance_dir }}/{{ inventory_hostname }}_compliance_{{ timestamp }}.txt"
+      delegate_to: localhost
+      vars:
+        device_name: "{{ inventory_hostname }}"
+        dns_status: "{{ 'PASS' if dns_compliant else 'FAIL' }}"
+        ntp_status: "{{ 'PASS' if ntp_compliant else 'FAIL' }}"
+        ssh_status: "{{ 'PASS' if ssh_compliant else 'FAIL' }}"
+        banner_status: "{{ 'PASS' if banner_check.stdout[0] | length > 0 else 'FAIL' }}"
+
+    - name: Display compliance summary
+      debug:
+        msg: |
+          Compliance Summary for {{ inventory_hostname }}:
+          DNS: {{ 'PASS' if dns_compliant else 'FAIL' }}
+          NTP: {{ 'PASS' if ntp_compliant else 'FAIL' }}
+          SSH: {{ 'PASS' if ssh_compliant else 'FAIL' }}
+          Banner: {{ 'PASS' if banner_check.stdout[0] | length > 0 else 'FAIL' }}

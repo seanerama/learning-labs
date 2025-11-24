@@ -1,0 +1,42 @@
+FROM python:3.11-slim
+
+LABEL maintainer="network-lab"
+LABEL description="Network Automation Development Environment"
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    openssh-client \
+    sshpass \
+    git \
+    vim \
+    curl \
+    telnet \
+    iputils-ping \
+    net-tools \
+    iproute2 \
+    tcpdump \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python packages
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+
+# Install Ansible collections
+RUN ansible-galaxy collection install cisco.ios \
+    && ansible-galaxy collection install cisco.nxos \
+    && ansible-galaxy collection install arista.eos \
+    && ansible-galaxy collection install junipernetworks.junos
+
+# Create workspace directory
+WORKDIR /workspace
+
+# Set up SSH directory
+RUN mkdir -p /root/.ssh && chmod 700 /root/.ssh
+
+# Install Jupyter for interactive development
+RUN pip install --no-cache-dir jupyter jupyterlab
+
+# Expose ports
+EXPOSE 8888 5000
+
+CMD ["/bin/bash"]

@@ -1,0 +1,39 @@
+---
+# Playbook 1: Gather Device Facts
+# Purpose: Collect information from network devices
+
+- name: Gather Network Device Facts
+  hosts: network
+  gather_facts: no
+  connection: network_cli
+
+  tasks:
+    - name: Gather all facts from devices
+      cisco.ios.ios_facts:
+        gather_subset: all
+      register: device_facts
+
+    - name: Display device version
+      debug:
+        msg: "{{ inventory_hostname }} is running {{ ansible_net_version }}"
+
+    - name: Display device model
+      debug:
+        msg: "{{ inventory_hostname }} model: {{ ansible_net_model }}"
+
+    - name: Display device serial number
+      debug:
+        msg: "{{ inventory_hostname }} serial: {{ ansible_net_serialnum }}"
+
+    - name: Create facts directory
+      file:
+        path: ./facts
+        state: directory
+      delegate_to: localhost
+      run_once: true
+
+    - name: Save facts to file
+      copy:
+        content: "{{ device_facts | to_nice_json }}"
+        dest: "./facts/{{ inventory_hostname }}_facts.json"
+      delegate_to: localhost

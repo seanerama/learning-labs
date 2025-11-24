@@ -1,0 +1,27 @@
+---
+# VLAN Provisioning Role - Default Variables
+
+# Default VLANs (can be overridden in inventory)
+vlans:
+  - id: 10
+    name: "Management"
+  - id: 20
+    name: "Data"
+  - id: 30
+    name: "Voice"
+
+# Spanning Tree Configuration
+stp_mode: rapid-pvst
+stp_priority: 32768
+
+# Native VLAN for trunks
+native_vlan: 1
+
+# Automatically save configuration
+auto_save: true
+
+# Trunk interfaces (empty by default, should be defined in inventory)
+trunk_interfaces: []
+
+# Access interfaces (empty by default, should be defined in inventory)
+access_interfaces: []

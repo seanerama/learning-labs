@@ -1,0 +1,38 @@
+---
+# Switch-specific variables
+
+# VLAN Configuration
+vlans:
+  - id: 10
+    name: "Management"
+  - id: 20
+    name: "Data"
+  - id: 30
+    name: "Voice"
+  - id: 40
+    name: "Guest"
+  - id: 100
+    name: "Servers"
+
+# Trunk Interfaces
+trunk_interfaces:
+  - GigabitEthernet0/1
+  - GigabitEthernet0/2
+
+# Access Interfaces Configuration
+access_interfaces:
+  - name: GigabitEthernet0/3
+    vlan: 20
+    description: "User Port"
+  - name: GigabitEthernet0/4
+    vlan: 20
+    description: "User Port"
+
+# Spanning Tree Configuration
+stp_mode: rapid-pvst
+stp_priority: 32768
+
+# Port Security
+port_security_enabled: true
+port_security_max_macs: 2
+port_security_violation: restrict

@@ -1,0 +1,14 @@
+---
+# Playbook using the compliance-check role
+
+- name: Check Device Compliance Using Role
+  hosts: network
+  gather_facts: no
+  connection: network_cli
+
+  roles:
+    - role: compliance-check
+      vars:
+        compliance_threshold: 80
+        enforce_compliance: false
+        require_aaa: false

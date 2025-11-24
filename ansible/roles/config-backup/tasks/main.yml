@@ -1,0 +1,70 @@
+---
+# Config Backup Role - Main Tasks
+
+- name: Set timestamp fact
+  set_fact:
+    backup_timestamp: "{{ lookup('pipe', 'date +%Y%m%d-%H%M%S') }}"
+  run_once: true
+  delegate_to: localhost
+
+- name: Create backup directory structure
+  file:
+    path: "{{ backup_root_dir }}/{{ backup_timestamp }}"
+    state: directory
+    mode: '0755'
+  delegate_to: localhost
+  run_once: true
+
+- name: Backup running configuration using ios_config
+  cisco.ios.ios_config:
+    backup: yes
+    backup_options:
+      filename: "{{ inventory_hostname }}_{{ backup_timestamp }}.cfg"
+      dir_path: "{{ backup_root_dir }}/{{ backup_timestamp }}"
+  register: backup_result
+
+- name: Get detailed running configuration
+  cisco.ios.ios_command:
+    commands:
+      - show running-config
+  register: running_config
+
+- name: Save running config to text file
+  copy:
+    content: "{{ running_config.stdout[0] }}"
+    dest: "{{ backup_root_dir }}/{{ backup_timestamp }}/{{ inventory_hostname }}_running.txt"
+  delegate_to: localhost
+
+- name: Get startup configuration
+  cisco.ios.ios_command:
+    commands:
+      - show startup-config
+  register: startup_config
+  ignore_errors: yes
+
+- name: Save startup config to text file
+  copy:
+    content: "{{ startup_config.stdout[0] }}"
+    dest: "{{ backup_root_dir }}/{{ backup_timestamp }}/{{ inventory_hostname }}_startup.txt"
+  delegate_to: localhost
+  when: startup_config is succeeded
+
+- name: Create backup metadata
+  copy:
+    content: |
+      Backup Metadata
+      ===============
+      Device: {{ inventory_hostname }}
+      Timestamp: {{ backup_timestamp }}
+      Backup Path: {{ backup_root_dir }}/{{ backup_timestamp }}
+      Running Config Size: {{ running_config.stdout[0] | length }} bytes
+      Backup Status: {{ 'Success' if backup_result is succeeded else 'Failed' }}
+    dest: "{{ backup_root_dir }}/{{ backup_timestamp }}/{{ inventory_hostname }}_metadata.txt"
+  delegate_to: localhost
+
+- name: Update backup index
+  lineinfile:
+    path: "{{ backup_root_dir }}/backup_index.txt"
+    line: "{{ backup_timestamp }} | {{ inventory_hostname }} | {{ ansible_net_version | default('unknown') }}"
+    create: yes
+  delegate_to: localhost

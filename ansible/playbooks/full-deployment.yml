@@ -1,0 +1,57 @@
+---
+# Full Network Deployment Playbook
+# This playbook demonstrates a complete workflow using roles
+
+- name: Complete Network Deployment Workflow
+  hosts: network
+  gather_facts: no
+  connection: network_cli
+
+  pre_tasks:
+    - name: Display deployment start message
+      debug:
+        msg: "Starting network deployment for {{ inventory_hostname }}"
+
+  tasks:
+    - name: Backup current configurations
+      include_role:
+        name: config-backup
+      vars:
+        backup_root_dir: "./backups"
+
+    - name: Apply base configuration
+      cisco.ios.ios_config:
+        src: ../templates/base-config.j2
+        save_when: modified
+      when: "'routers' in group_names or 'switches' in group_names"
+
+    - name: Configure VLANs on switches
+      include_role:
+        name: vlan-provisioning
+      when: "'switches' in group_names"
+
+    - name: Verify configuration
+      cisco.ios.ios_command:
+        commands:
+          - show version
+          - show running-config | include hostname
+      register: verification
+
+    - name: Run compliance check
+      include_role:
+        name: compliance-check
+      vars:
+        compliance_threshold: 75
+        enforce_compliance: false
+
+  post_tasks:
+    - name: Display deployment completion
+      debug:
+        msg: "Deployment completed for {{ inventory_hostname }}"
+
+    - name: Create deployment summary
+      lineinfile:
+        path: "./logs/deployment_summary.txt"
+        line: "{{ ansible_date_time.iso8601 }} | {{ inventory_hostname }} | COMPLETED"
+        create: yes
+      delegate_to: localhost

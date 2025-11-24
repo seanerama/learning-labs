@@ -1,0 +1,75 @@
+---
+# Playbook 6: Interface Audit
+# Purpose: Audit interface status and configuration
+
+- name: Network Interface Audit
+  hosts: network
+  gather_facts: no
+  connection: network_cli
+
+  vars:
+    audit_dir: "./audit"
+    timestamp: "{{ lookup('pipe', 'date +%Y%m%d-%H%M%S') }}"
+
+  tasks:
+    - name: Create audit directory
+      file:
+        path: "{{ audit_dir }}"
+        state: directory
+      delegate_to: localhost
+      run_once: true
+
+    - name: Gather interface facts
+      cisco.ios.ios_facts:
+        gather_subset:
+          - interfaces
+
+    - name: Get interface status
+      cisco.ios.ios_command:
+        commands:
+          - show ip interface brief
+      register: interface_brief
+
+    - name: Get interface descriptions
+      cisco.ios.ios_command:
+        commands:
+          - show interfaces description
+      register: interface_descriptions
+
+    - name: Get interface errors
+      cisco.ios.ios_command:
+        commands:
+          - show interfaces | include error
+      register: interface_errors
+
+    - name: Identify down interfaces
+      set_fact:
+        down_interfaces: "{{ ansible_net_interfaces | dict2items | selectattr('value.operstatus', 'equalto', 'down') | map(attribute='key') | list }}"
+
+    - name: Create audit report
+      copy:
+        content: |
+          Interface Audit Report
+          Device: {{ inventory_hostname }}
+          Date: {{ timestamp }}
+          ================================================
+
+          Interface Status:
+          {{ interface_brief.stdout[0] }}
+
+          Interface Descriptions:
+          {{ interface_descriptions.stdout[0] }}
+
+          Down Interfaces:
+          {{ down_interfaces | join(', ') | default('None') }}
+
+          Interface Errors:
+          {{ interface_errors.stdout[0] }}
+
+        dest: "{{ audit_dir }}/{{ inventory_hostname }}_interface_audit_{{ timestamp }}.txt"
+      delegate_to: localhost
+
+    - name: Display down interfaces
+      debug:
+        msg: "Device {{ inventory_hostname }} has {{ down_interfaces | length }} interface(s) down: {{ down_interfaces | join(', ') }}"
+      when: down_interfaces | length > 0

@@ -1,0 +1,151 @@
+---
+# Compliance Check Role - Main Tasks
+
+- name: Set compliance timestamp
+  set_fact:
+    compliance_timestamp: "{{ lookup('pipe', 'date +%Y%m%d-%H%M%S') }}"
+  run_once: true
+  delegate_to: localhost
+
+- name: Create compliance directory
+  file:
+    path: "{{ compliance_dir }}"
+    state: directory
+    mode: '0755'
+  delegate_to: localhost
+  run_once: true
+
+- name: Gather device facts
+  cisco.ios.ios_facts:
+    gather_subset:
+      - hardware
+      - config
+  register: device_info
+
+- name: Check hostname configuration
+  cisco.ios.ios_command:
+    commands:
+      - show run | include hostname
+  register: hostname_check
+
+- name: Check DNS configuration
+  cisco.ios.ios_command:
+    commands:
+      - show run | include name-server
+  register: dns_check
+
+- name: Check NTP configuration
+  cisco.ios.ios_command:
+    commands:
+      - show ntp associations
+  register: ntp_check
+
+- name: Check logging configuration
+  cisco.ios.ios_command:
+    commands:
+      - show logging
+  register: logging_check
+
+- name: Check SSH configuration
+  cisco.ios.ios_command:
+    commands:
+      - show ip ssh
+  register: ssh_check
+
+- name: Check SNMP configuration
+  cisco.ios.ios_command:
+    commands:
+      - show run | section snmp
+  register: snmp_check
+
+- name: Check banner configuration
+  cisco.ios.ios_command:
+    commands:
+      - show run | section banner
+  register: banner_check
+
+- name: Check AAA configuration
+  cisco.ios.ios_command:
+    commands:
+      - show run | section aaa
+  register: aaa_check
+  when: require_aaa | default(false)
+
+- name: Evaluate hostname compliance
+  set_fact:
+    hostname_compliant: "{{ inventory_hostname in hostname_check.stdout[0] }}"
+
+- name: Evaluate DNS compliance
+  set_fact:
+    dns_compliant: "{{ dns_servers is defined and (dns_servers | map('string') | select('in', dns_check.stdout[0]) | list | length > 0) }}"
+
+- name: Evaluate NTP compliance
+  set_fact:
+    ntp_compliant: "{{ 'configured' in ntp_check.stdout[0] or 'synced' in ntp_check.stdout[0] }}"
+
+- name: Evaluate logging compliance
+  set_fact:
+    logging_compliant: "{{ syslog_server is defined and syslog_server in logging_check.stdout[0] }}"
+
+- name: Evaluate SSH compliance
+  set_fact:
+    ssh_compliant: "{{ 'Enabled' in ssh_check.stdout[0] and 'version 2' in ssh_check.stdout[0] }}"
+
+- name: Evaluate banner compliance
+  set_fact:
+    banner_compliant: "{{ banner_check.stdout[0] | length > 0 }}"
+
+- name: Calculate overall compliance score
+  set_fact:
+    compliance_checks:
+      - name: "Hostname"
+        status: "{{ 'PASS' if hostname_compliant else 'FAIL' }}"
+        compliant: "{{ hostname_compliant }}"
+      - name: "DNS"
+        status: "{{ 'PASS' if dns_compliant else 'FAIL' }}"
+        compliant: "{{ dns_compliant }}"
+      - name: "NTP"
+        status: "{{ 'PASS' if ntp_compliant else 'FAIL' }}"
+        compliant: "{{ ntp_compliant }}"
+      - name: "Logging"
+        status: "{{ 'PASS' if logging_compliant else 'FAIL' }}"
+        compliant: "{{ logging_compliant }}"
+      - name: "SSH"
+        status: "{{ 'PASS' if ssh_compliant else 'FAIL' }}"
+        compliant: "{{ ssh_compliant }}"
+      - name: "Banner"
+        status: "{{ 'PASS' if banner_compliant else 'FAIL' }}"
+        compliant: "{{ banner_compliant }}"
+
+- name: Calculate compliance percentage
+  set_fact:
+    compliance_score: "{{ ((compliance_checks | selectattr('compliant') | list | length / compliance_checks | length) * 100) | round(2) }}"
+
+- name: Generate compliance report
+  template:
+    src: compliance-report.j2
+    dest: "{{ compliance_dir }}/{{ inventory_hostname }}_compliance_{{ compliance_timestamp }}.txt"
+  delegate_to: localhost
+
+- name: Update compliance index
+  lineinfile:
+    path: "{{ compliance_dir }}/compliance_index.txt"
+    line: "{{ compliance_timestamp }} | {{ inventory_hostname }} | {{ compliance_score }}% | {{ 'PASS' if compliance_score | float >= compliance_threshold else 'FAIL' }}"
+    create: yes
+  delegate_to: localhost
+
+- name: Display compliance summary
+  debug:
+    msg: |
+      Compliance Summary for {{ inventory_hostname }}:
+      Overall Score: {{ compliance_score }}%
+      {% for check in compliance_checks %}
+      {{ check.name }}: {{ check.status }}
+      {% endfor %}
+
+- name: Fail if compliance below threshold
+  fail:
+    msg: "Device {{ inventory_hostname }} failed compliance check with score {{ compliance_score }}% (threshold: {{ compliance_threshold }}%)"
+  when:
+    - enforce_compliance | default(false)
+    - compliance_score | float < compliance_threshold
