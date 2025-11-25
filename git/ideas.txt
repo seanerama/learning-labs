@@ -1,0 +1,362 @@
+ Here's a practical, network-focused exercise set:
+
+## Phase 1 Exercises: Single Developer Basics
+
+### Exercise 1.1: Track a Single Switch Configuration
+**Scenario**: You're managing a Cisco access switch and want to track configuration changes.
+
+```
+mkdir switch-configs
+cd switch-configs
+git init
+```
+
+Create a file `SW-ACCESS-01.cfg`:
+```
+hostname SW-ACCESS-01
+!
+vlan 10
+ name DATA
+vlan 20
+ name VOICE
+vlan 99
+ name MANAGEMENT
+!
+interface GigabitEthernet0/1
+ description UPLINK-TO-CORE
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20,99
+!
+interface range GigabitEthernet0/2-24
+ switchport mode access
+ switchport access vlan 10
+ spanning-tree portfast
+```
+
+**Practice**:
+- `git add SW-ACCESS-01.cfg`
+- `git commit -m "Initial switch configuration"`
+- Modify the config (add VLAN 30 for GUEST)
+- Use `git status` and `git diff` to see changes
+- Commit with message "Add guest VLAN"
+- Use `git log` to see your change history
+
+### Exercise 1.2: Connect to Remote Backup
+**Scenario**: Store configs in GitHub/GitLab for disaster recovery.
+
+```
+git remote add origin https://github.com/yourusername/network-configs.git
+git push -u origin main
+```
+
+Simulate a config change and push:
+- Add a new interface configuration
+- Commit locally
+- Push to remote
+- Practice `git pull` to simulate retrieving from another location
+
+### Exercise 1.3: Recover from Mistakes
+**Scenario**: You accidentally changed the wrong VLAN. Undo it.
+
+```
+# Make a bad change to the file
+git status  # See it's modified
+git restore SW-ACCESS-01.cfg  # Undo the change
+```
+
+Or recover an older version:
+```
+git log  # Find the commit hash
+git checkout <commit-hash> SW-ACCESS-01.cfg
+git commit -m "Revert to previous working config"
+```
+
+---
+
+## Phase 2 Exercises: Collaborative Development
+
+### Exercise 2.1: Multiple Site Management with Branches
+**Scenario**: You manage switches at multiple branch offices. Each site gets its own branch for testing before merging to production.
+
+```
+# Main branch has your standard config template
+git checkout -b site-chicago
+```
+
+Modify `SW-ACCESS-01.cfg` for Chicago site:
+- Change hostname to SW-CHI-ACCESS-01
+- Add site-specific VLANs
+- Commit changes
+
+```
+git checkout main
+git checkout -b site-newyork
+```
+
+Create different config for NY site, then practice merging:
+```
+git checkout main
+git merge site-chicago
+git merge site-newyork  # This will create a conflict!
+```
+
+**Learn to resolve the conflict** by choosing which site-specific settings to keep.
+
+### Exercise 2.2: Team Configuration Review
+**Scenario**: Junior engineer makes changes; you review before deploying.
+
+Create a new branch:
+```
+git checkout -b feature/add-security-settings
+```
+
+Add security configurations:
+```
+interface range GigabitEthernet0/2-24
+ switchport port-security maximum 2
+ switchport port-security violation restrict
+ switchport port-security mac-address sticky
+!
+spanning-tree portfast bpduguard default
+```
+
+- Commit the changes
+- Push the branch to remote
+- Practice creating a pull request (on GitHub/GitLab)
+- Review the diff online
+- Merge after approval
+
+### Exercise 2.3: Sync with Team Changes
+**Scenario**: While you're working, a colleague updates the core switch config.
+
+```
+# You're working on your branch
+git checkout -b update-access-ports
+
+# Meanwhile, someone else merged changes to main
+# Fetch their changes
+git fetch origin
+git checkout main
+git pull
+
+# Now update your branch with the latest
+git checkout update-access-ports
+git rebase main  # or git merge main
+```
+
+---
+
+## Phase 3 Exercises: Advanced Concepts
+
+### Exercise 3.1: Python Script for Config Backup
+**Scenario**: Automate backing up multiple device configs to Git.
+
+Create `backup_configs.py`:
+```python
+#!/usr/bin/env python3
+"""
+Automated network device configuration backup to Git
+"""
+from netmiko import ConnectHandler
+import os
+from datetime import datetime
+import subprocess
+
+devices = [
+    {
+        'device_type': 'cisco_ios',
+        'host': '192.168.1.10',
+        'username': 'admin',
+        'password': 'cisco123',
+        'hostname': 'SW-CORE-01'
+    },
+    {
+        'device_type': 'cisco_ios',
+        'host': '192.168.1.11',
+        'username': 'admin',
+        'password': 'cisco123',
+        'hostname': 'SW-ACCESS-01'
+    }
+]
+
+def backup_device_config(device):
+    """Connect to device and retrieve running config"""
+    try:
+        connection = ConnectHandler(**device)
+        config = connection.send_command('show running-config')
+        connection.disconnect()
+        
+        # Save to file
+        filename = f"configs/{device['hostname']}.cfg"
+        with open(filename, 'w') as f:
+            f.write(config)
+        
+        print(f"✓ Backed up {device['hostname']}")
+        return True
+    except Exception as e:
+        print(f"✗ Failed to backup {device['hostname']}: {e}")
+        return False
+
+def git_commit_changes():
+    """Commit any config changes to Git"""
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    
+    # Check if there are changes
+    result = subprocess.run(['git', 'status', '--porcelain'], 
+                          capture_output=True, text=True)
+    
+    if result.stdout:
+        subprocess.run(['git', 'add', 'configs/'])
+        subprocess.run(['git', 'commit', '-m', 
+                       f'Automated backup: {timestamp}'])
+        subprocess.run(['git', 'push'])
+        print(f"✓ Changes committed and pushed to remote")
+    else:
+        print("○ No configuration changes detected")
+
+if __name__ == '__main__':
+    os.makedirs('configs', exist_ok=True)
+    
+    for device in devices:
+        backup_device_config(device)
+    
+    git_commit_changes()
+```
+
+**Practice**:
+- Initialize a repo with this script
+- Run it manually
+- Use `git log` to see automatic commits
+- Use `git diff` between commits to see what changed on devices
+- Add the script to cron for daily backups
+
+### Exercise 3.2: Interactive Rebase for Clean History
+**Scenario**: You made 5 commits while troubleshooting. Clean them up before sharing.
+
+```
+# Your messy history:
+git log --oneline
+# a1b2c3d Fix VLAN again
+# d4e5f6g Try different VLAN
+# g7h8i9j Maybe this VLAN?
+# j0k1l2m Add VLAN
+# m3n4o5p Original config
+
+# Clean it up
+git rebase -i HEAD~4
+```
+
+In the editor, squash the troubleshooting commits into one clean commit:
+```
+pick m3n4o5p Original config
+pick j0k1l2m Add VLAN
+squash g7h8i9j Maybe this VLAN?
+squash d4e5f6g Try different VLAN
+squash a1b2c3d Fix VLAN again
+```
+
+Result: Clean, professional commit history.
+
+### Exercise 3.3: Multi-Device Change Tracking
+**Scenario**: Upgrade IOS across multiple switches, track before/after configs.
+
+Create a script `pre_post_check.py`:
+```python
+#!/usr/bin/env python3
+"""
+Capture pre/post upgrade configs and create comparison branch
+"""
+import subprocess
+from datetime import datetime
+
+def create_snapshot_branch(stage):
+    """Create a branch for this snapshot"""
+    timestamp = datetime.now().strftime('%Y%m%d-%H%M')
+    branch_name = f"{stage}-upgrade-{timestamp}"
+    
+    subprocess.run(['git', 'checkout', '-b', branch_name])
+    subprocess.run(['git', 'add', 'configs/'])
+    subprocess.run(['git', 'commit', '-m', 
+                   f'{stage.upper()} upgrade snapshot'])
+    subprocess.run(['git', 'push', '-u', 'origin', branch_name])
+    
+    print(f"✓ Created snapshot branch: {branch_name}")
+    return branch_name
+
+def compare_configs(pre_branch, post_branch):
+    """Show differences between pre and post configs"""
+    print(f"\n{'='*60}")
+    print(f"Configuration changes: {pre_branch} → {post_branch}")
+    print(f"{'='*60}\n")
+    
+    result = subprocess.run(['git', 'diff', pre_branch, post_branch],
+                          capture_output=True, text=True)
+    print(result.stdout)
+
+# Usage:
+# 1. Run backup script
+# 2. pre_branch = create_snapshot_branch('pre')
+# 3. Perform upgrade
+# 4. Run backup script again
+# 5. post_branch = create_snapshot_branch('post')
+# 6. compare_configs(pre_branch, post_branch)
+```
+
+### Exercise 3.4: Git Hooks for Validation
+**Scenario**: Prevent committing configs with default passwords.
+
+Create `.git/hooks/pre-commit`:
+```bash
+#!/bin/bash
+# Validate config files before commit
+
+echo "Validating configuration files..."
+
+# Check for default passwords
+if grep -r "password cisco" configs/; then
+    echo "ERROR: Default password detected!"
+    echo "Please change passwords before committing."
+    exit 1
+fi
+
+# Check for missing hostname
+for file in configs/*.cfg; do
+    if ! grep -q "^hostname" "$file"; then
+        echo "ERROR: $file missing hostname command"
+        exit 1
+    fi
+done
+
+echo "✓ Validation passed"
+exit 0
+```
+
+Make it executable:
+```bash
+chmod +x .git/hooks/pre-commit
+```
+
+**Practice**:
+- Try to commit a config with "password cisco"
+- Watch the commit get blocked
+- Fix the issue and commit successfully
+
+---
+
+## Practical Scenario: Complete Workflow
+
+**Day-in-the-life exercise**: Combine everything
+
+1. Clone your network-configs repo to your jump server
+2. Create a feature branch for "add-syslog-servers"
+3. Run your backup script to get current configs
+4. Modify configs to add syslog servers
+5. Use git diff to review changes
+6. Commit with descriptive message
+7. Push branch and create pull request
+8. Have a colleague review
+9. Merge to main
+10. Deploy configs to devices
+11. Run backup script again to verify
+
+This workflow ensures you have version control, peer review, and rollback capability for all network changes!
