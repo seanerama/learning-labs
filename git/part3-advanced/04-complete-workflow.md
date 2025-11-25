@@ -757,13 +757,29 @@ git log -1
 # (In real scenario, you'd connect to devices and upgrade IOS)
 # For this example, simulate config changes
 
-# Simulate IOS version change
-sed -i 's/version 15.2/version 15.7/' configs/SW-CORE-01.cfg
-
-# Add new features available in 15.7
-echo "service timestamps debug datetime msec" >> configs/SW-CORE-01.cfg
-echo "service timestamps log datetime msec" >> configs/SW-CORE-01.cfg
+# Edit the config file
+nano configs/SW-CORE-01.cfg
 ```
+
+**Simulate the IOS upgrade changes:**
+
+1. Find the line with the version (near the top):
+```
+version 15.2
+```
+
+2. Change it to:
+```
+version 15.7
+```
+
+3. Add these new features at the end of the file (before the `end` statement):
+```
+service timestamps debug datetime msec
+service timestamps log datetime msec
+```
+
+**Save and exit** (nano: Ctrl+X, then Y, then Enter)
 
 **Step 4: Post-Change Snapshot**
 

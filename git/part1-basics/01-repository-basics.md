@@ -202,12 +202,34 @@ Clean! No pending changes.
 Let's add a new VLAN:
 
 ```bash
-# Edit the file (add VLAN 30 for GUEST)
-# You can use nano, vim, or any text editor
+# Edit the file with your preferred editor
+nano SW-ACCESS-01.cfg
 
-# For this example, we'll use sed to add it
-sed -i '/vlan 99/a vlan 30\n name GUEST' SW-ACCESS-01.cfg
+# OR
+vim SW-ACCESS-01.cfg
+```
 
+**Add VLAN 30 after VLAN 99:**
+
+Find this section:
+```
+vlan 99
+ name MANAGEMENT
+!
+```
+
+Change it to:
+```
+vlan 99
+ name MANAGEMENT
+vlan 30
+ name GUEST
+!
+```
+
+**Save and exit** (nano: Ctrl+X, then Y, then Enter | vim: Esc, :wq, Enter)
+
+```bash
 # Verify the change
 grep -A1 "vlan 30" SW-ACCESS-01.cfg
 # Output:
