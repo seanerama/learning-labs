@@ -11,7 +11,7 @@ A collection of hands-on learning labs for DevOps, automation, and infrastructur
 | [🤖 Ansible](ansible/) | Network automation with Ansible for Cisco IOS devices | 4 hours | Beginner → Advanced |
 | [🐍 Python Intro](python-intro/) | Python for network automation with Netmiko and Cisco IOS | 3 hours | Beginner |
 | [🔌 MCP](mcp/) | Model Context Protocol implementation and usage | TBD | Advanced |
-| [🌿 Git](git/) | Version control fundamentals and workflows | Coming Soon | Beginner |
+| [🌿 Git](git/) | Version control for network configurations and automation | 5 hours | Beginner → Advanced |
 
 ## 🎯 Getting Started
 
@@ -92,18 +92,28 @@ Specific requirements are listed in each lab's QUICKSTART.md
 
 ## 📊 Lab Overview
 
-### Git (Coming Soon)
+### Git
 **What you'll learn:**
-- Git fundamentals and workflow
-- Branching and merging strategies
-- Collaboration with remote repositories
-- Resolving conflicts
-- Best practices for commits
+- Git fundamentals and workflow for network configurations
+- GitHub and GitLab setup and usage
+- Branching strategies for multi-site management
+- Merging and conflict resolution
+- Pull requests and code review
+- Automated configuration backups with Python
+- Git hooks for validation
+- Pre/post maintenance snapshots
 
 **Highlights:**
-- Initialize and manage repositories
-- Collaborate with teams
-- CI/CD integration basics
+- Track Cisco switch configurations
+- Automate device backups with Python + Git
+- Implement professional change workflows
+- Create validation hooks to prevent mistakes
+- Multi-site configuration management
+
+**Parts:**
+- Part 1: Single Developer Basics (1.5 hours)
+- Part 2: Collaborative Development (2 hours)
+- Part 3: Advanced Concepts (1.5 hours)
 
 ### Docker Basics
 **What you'll learn:**
