@@ -7,8 +7,11 @@ A collection of hands-on learning labs for DevOps, automation, and infrastructur
 | Lab | Description | Duration | Difficulty |
 |-----|-------------|----------|------------|
 | [🐳 Docker Basics](docker-basics/) | Container fundamentals, image building, and Docker Compose | 5 hours | Beginner → Intermediate |
+| [☸️ Kubernetes](kubernetes/) | Container orchestration, deployments, and cluster management | TBD | Intermediate |
 | [🤖 Ansible](ansible/) | Network automation with Ansible for Cisco IOS devices | 4 hours | Beginner → Advanced |
 | [🐍 Python Intro](python-intro/) | Python for network automation with Netmiko and Cisco IOS | 3 hours | Beginner |
+| [🔌 MCP](mcp/) | Model Context Protocol implementation and usage | TBD | Advanced |
+| [🌿 Git](git/) | Version control fundamentals and workflows | Coming Soon | Beginner |
 
 ## 🎯 Getting Started
 
@@ -52,14 +55,21 @@ lab-name/
 ## 🎓 Learning Paths
 
 ### DevOps Track
-1. Start with **Docker Basics** - Learn containerization
-2. Explore **Ansible** - Automate infrastructure
-3. Combine both for container orchestration
+1. Start with **Git** - Version control fundamentals
+2. Learn **Docker Basics** - Containerization
+3. Progress to **Kubernetes** - Container orchestration
+4. Explore **Ansible** - Infrastructure automation
 
 ### Network Automation Track
-1. Start with **Python Intro** - Learn Python basics
-2. Move to **Ansible** - Network device automation
-3. Use **Docker** for automation tool deployment
+1. Start with **Git** - Version control for configs
+2. Learn **Python Intro** - Automation basics
+3. Move to **Ansible** - Network device automation
+4. Use **Docker** for automation tool deployment
+
+### Cloud Native Track
+1. **Docker Basics** - Container fundamentals
+2. **Kubernetes** - Orchestration at scale
+3. **MCP** - Advanced protocol integration
 
 ## 🔧 Prerequisites
 
@@ -82,6 +92,19 @@ Specific requirements are listed in each lab's QUICKSTART.md
 
 ## 📊 Lab Overview
 
+### Git (Coming Soon)
+**What you'll learn:**
+- Git fundamentals and workflow
+- Branching and merging strategies
+- Collaboration with remote repositories
+- Resolving conflicts
+- Best practices for commits
+
+**Highlights:**
+- Initialize and manage repositories
+- Collaborate with teams
+- CI/CD integration basics
+
 ### Docker Basics
 **What you'll learn:**
 - Running and managing containers
@@ -94,6 +117,19 @@ Specific requirements are listed in each lab's QUICKSTART.md
 - Deploy a speedtest server
 - Build a Streamlit web app
 - Create Flask + PostgreSQL stack
+
+### Kubernetes
+**What you'll learn:**
+- Kubernetes architecture and concepts
+- Deployments, services, and pods
+- ConfigMaps and secrets
+- Scaling and updates
+- Cluster management
+
+**Highlights:**
+- Deploy applications to Kubernetes
+- Manage microservices
+- Production orchestration
 
 ### Ansible
 **What you'll learn:**
@@ -120,6 +156,18 @@ Specific requirements are listed in each lab's QUICKSTART.md
 - Connect to network devices
 - Automate configuration tasks
 - Process device inventories
+
+### MCP
+**What you'll learn:**
+- Model Context Protocol implementation
+- Server and client architecture
+- Integration patterns
+- Advanced use cases
+
+**Highlights:**
+- Build MCP servers
+- Integrate with applications
+- Protocol deep dive
 
 ## 🤝 Contributing
 
