@@ -1,0 +1,29 @@
+name: simple-lab
+
+topology:
+  nodes:
+    client1:
+      kind: linux
+      image: alpine:latest
+      exec:
+        - ip addr add 192.168.1.10/24 dev eth1
+        - ip route add 192.168.2.0/24 via 192.168.1.1
+
+    router:
+      kind: linux
+      image: alpine:latest
+      exec:
+        - ip addr add 192.168.1.1/24 dev eth1
+        - ip addr add 192.168.2.1/24 dev eth2
+        - sysctl -w net.ipv4.ip_forward=1
+
+    server1:
+      kind: linux
+      image: alpine:latest
+      exec:
+        - ip addr add 192.168.2.10/24 dev eth1
+        - ip route add 192.168.1.0/24 via 192.168.2.1
+
+  links:
+    - endpoints: ["client1:eth1", "router:eth1"]
+    - endpoints: ["router:eth2", "server1:eth1"]

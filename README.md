@@ -12,6 +12,7 @@ A collection of hands-on learning labs for DevOps, automation, and infrastructur
 | [🐍 Python Intro](python-intro/) | Python for network automation with Netmiko and Cisco IOS | 3 hours | Beginner |
 | [🔌 MCP](mcp/) | Model Context Protocol implementation and usage | TBD | Advanced |
 | [🌿 Git](git/) | Version control for network configurations and automation | 5 hours | Beginner → Advanced |
+| [🔬 Containerlab](containerlab/) | Container-based network labs and topology simulation | 2 hours | Beginner → Intermediate |
 
 ## 🎯 Getting Started
 
@@ -178,6 +179,21 @@ Specific requirements are listed in each lab's QUICKSTART.md
 - Build MCP servers
 - Integrate with applications
 - Protocol deep dive
+
+### Containerlab
+**What you'll learn:**
+- Define network topologies with YAML
+- Deploy containerized network labs
+- Linux routing and networking fundamentals
+- Test network connectivity between containers
+- Traffic monitoring and troubleshooting
+
+**Highlights:**
+- Build multi-node network topologies
+- Route traffic between subnets
+- Run services across container networks
+- Simulate network failures
+- Packet capture and analysis
 
 ## 🤝 Contributing
 
